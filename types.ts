@@ -1,0 +1,211 @@
+
+
+export enum UserRole {
+  GUEST = 'GUEST',
+  CLIENT = 'CLIENT',
+  VOLUNTEER = 'VOLUNTEER',
+  CLIENT_VOLUNTEER = 'CLIENT_VOLUNTEER', // New Dual Role
+  COORDINATOR = 'COORDINATOR',
+  ADMIN = 'ADMIN'
+}
+
+export enum RequestStatus {
+  PENDING = 'PENDING',
+  MATCHED = 'MATCHED',
+  IN_PROGRESS = 'IN_PROGRESS',
+  COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED',
+  EXPIRED = 'EXPIRED'
+}
+
+export enum RequestCategory {
+  RIDE = 'Ride',
+  SHOPPING = 'Errand',
+  SOCIAL = 'Social/Emotional Support',
+  HOME_HELP = 'Home Help/Safety',
+  OTHER = 'Other'
+}
+
+export enum OnboardingStep {
+  PROFILE = 1,
+  SKILLS = 2,
+  BACKGROUND_CHECK = 3,
+  TRAINING = 4,
+  COMPLETE = 5
+}
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  avatar?: string;
+  phone?: string;
+  address?: string; // Prefilled North Plains
+
+  // Onboarding State
+  onboardingStep: OnboardingStep;
+  intakeDate?: string; // Date of program entry
+
+  // Client Specific - HUD & Safety
+  preferredName?: string;
+  dob?: string;
+  gender?: string;
+  preferredLanguage?: string;
+  preferredContactMethod?: 'Call' | 'Text' | 'Email';
+
+  // HUD: Demographics
+  race?: string; // HUD standard
+  ethnicity?: 'Hispanic/Latino' | 'Not Hispanic/Latino'; // HUD specific
+  veteranStatus?: boolean;
+  maritalStatus?: string;
+
+  // HUD: Household
+  householdType?: string; // Single adult, Family w/ children, etc.
+  householdSize?: number;
+  hasMinors?: boolean;
+  hasSeniors?: boolean;
+
+  // HUD: Income & Benefits
+  incomeRange?: string; // HUD picklist
+  incomeSources?: string[]; // Wages, SSI, SSDI, Pension, etc.
+  nonCashBenefits?: string[]; // SNAP, TANF, WIC, etc.
+
+  // HUD: Disability
+  disabilityStatus?: boolean; // HUD basic requirement
+  disabilityType?: string; // Functional limitation
+  affectsIndependence?: boolean; // Does it affect ability to live independently?
+
+  // Service Info
+  referralSource?: string;
+
+  emergencyContact?: {
+    name: string;
+    phone: string;
+    relation?: string;
+  };
+
+  pets?: string; // Types and names
+  interestingFacts?: string;
+  hobbies?: string[]; // Shared field for both roles now
+
+  accessibility?: {
+    hearing: string; // "Yes", "No", "Unknown"
+    vision: string;
+    mobility: string; // "Walker", "Wheelchair", "Stairs difficult"
+    notes?: string;
+  };
+
+  // Volunteer Specific
+  totalHours?: number;
+  badges?: string[];
+  newBadges?: string[]; // Badges earned but not yet acknowledged by user (triggers popup)
+  backgroundCheckStatus?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'NOT_STARTED';
+  trainingComplete?: boolean;
+  languages?: string[];
+  isDriver?: boolean;
+
+  // Admin/Reporting
+  lastActiveDate?: string;
+
+  // Notifications
+  notifications?: { message: string; date?: string; read?: boolean }[];
+}
+
+export interface Request {
+  id: string;
+  clientId: string;
+  clientName: string;
+  category: RequestCategory;
+  subcategory: string;
+  description: string;
+  date: string; // ISO date string
+
+  // Legacy single time string, kept for compatibility
+  timeWindow: string;
+
+  // New Transportation Logic
+  appointmentTime?: string; // When they need to be there
+  pickupTime?: string; // When volunteer arrives
+  returnTime?: string; // Optional return
+
+  // Location / Geozone
+  location: string; // Destination name/address
+  geozone: string; // "North Plains - Central", "Glencoe Area" - shown to volunteers pre-match
+
+  status: RequestStatus;
+  volunteerId?: string;
+  volunteerName?: string;
+
+  // Logistics
+  isRecurring?: boolean;
+  frequency?: string;
+  endDate?: string;
+
+  // Group Events
+  isGroupEvent?: boolean;
+  maxVolunteers?: number;
+  enrolledVolunteers?: string[]; // List of volunteer IDs
+
+  // Ride Specifics
+  pickupAddress?: string;
+  destinationAddress?: string;
+
+  // Safety & Notes
+  safetyAlert?: boolean;
+  safetyNotes?: string;
+  adminNotes?: string;
+  alertResolved?: boolean;
+
+  // Survey Status
+  clientSurveyCompleted?: boolean;
+  volunteerSurveyCompleted?: boolean;
+
+  // Flexible Schedule
+  isFlexible?: boolean;
+  flexStartDate?: string;
+  flexEndDate?: string;
+  flexTimes?: string; // "Morning", "Afternoon", or custom range text
+
+}
+
+export interface SafetyReport {
+  id: string;
+  requestId?: string;
+  reporterId: string;
+  reporterName: string;
+  reporterRole: 'CLIENT' | 'VOLUNTEER';
+  severity: 'LOW' | 'MEDIUM' | 'HIGH';
+  category: string;
+  description: string;
+  adminNotes?: string;
+  status: 'NEW' | 'IN_REVIEW' | 'RESOLVED';
+  date: string;
+  assignedStaff?: string;
+}
+
+export interface BadgeDef {
+  id: string;
+  label: string;
+  icon: string;
+  color: string;
+  id: string;
+  label: string;
+  icon: string;
+  color: string;
+  description: string;
+}
+
+export type CommunicationType = 'EMAIL' | 'SMS';
+
+export interface CommunicationLog {
+  id: string;
+  recipientId: string;
+  recipientName: string;
+  recipientRole: UserRole;
+  type: CommunicationType;
+  subject: string; // or Message Snippet for SMS
+  date: string; // ISO
+  status: 'SENT' | 'DELIVERED' | 'FAILED';
+  opened: boolean; // Engagement metric
+}
