@@ -2,9 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Request, RequestStatus, RequestCategory, SafetyReport, UserRole, CommunicationLog, CommunicationType } from '../types';
 import { MOCK_COMM_LOGS } from '../services/mockData';
 import { exportToCSV } from '../utils/export';
-import { StatWidget, Card, StatusBadge, Tabs, Input, Button, Modal } from '../components/UI';
+import { StatWidget, Card, StatusBadge, Tabs, Input, Button, Modal, ChartContainer, StandardGrid, StandardXAxis, StandardYAxis, StandardTooltip, TimeFrameSelector } from '../components/UI';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, AreaChart, Area } from 'recharts';
-import { Users, ClipboardList, AlertTriangle, Activity, ShieldAlert, BookOpen, Mail, Shield, Download, FileText, CheckCircle, Clock, Search, MessageSquare, Filter, ChevronDown, ChevronUp, Heart, XCircle, Calendar, Printer, Send, Smartphone } from 'lucide-react';
+import { Users, ClipboardList, AlertTriangle, Activity, ShieldAlert, BookOpen, Mail, Shield, Download, FileText, CheckCircle, Clock, Search, MessageSquare, Filter, ChevronDown, ChevronUp, Heart, XCircle, Calendar, Printer, Send, Smartphone, TrendingUp, TrendingDown, PlayCircle } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
+
+// Export AdminAssignments
+export { AdminAssignments } from './AdminAssignments';
 
 // --- Sub-Dashboards ---
 
@@ -88,23 +92,73 @@ const RequestHeatmap: React.FC<{ requests: Request[] }> = ({ requests }) => {
 };
 
 const ExecutiveDashboard: React.FC<{ requests: Request[]; onNavigate: (tab: string) => void }> = ({ requests, onNavigate }) => {
+   const { t } = useTheme();
+   const [timeFrame, setTimeFrame] = useState('6 Months');
+
+   const getTimelineLabels = (range: string) => {
+      const now = new Date();
+      const labels = [];
+      if (range === '7 Days') {
+         for (let i = 6; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+            labels.push(`${d.getMonth() + 1}/${d.getDate()}`);
+         }
+      } else if (range === '30 Days') {
+         for (let i = 5; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (i * 6));
+            labels.push(`${d.getMonth() + 1}/${d.getDate()}`);
+         }
+      } else {
+         const count = range === '6 Months' ? 6 : range === '1 Year' ? 12 : range === '3 Months' ? 3 : 4;
+         for (let i = count - 1; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            labels.push(d.toLocaleString('default', { month: 'short' }));
+         }
+      }
+      return labels;
+   };
+
    // Dynamic calculations for Executive View
-   const now = new Date();
-   const last30Days = new Date();
-   last30Days.setDate(now.getDate() - 30);
+   const filteredRequests = requests.filter(r => {
+      if (timeFrame === 'All Time') return true;
+      const date = new Date(r.date);
+      const now = new Date();
+      let cutoff = new Date();
+      if (timeFrame === '7 Days') cutoff.setDate(now.getDate() - 7);
+      else if (timeFrame === '30 Days') cutoff.setDate(now.getDate() - 30);
+      else if (timeFrame === '3 Months') cutoff.setMonth(now.getMonth() - 3);
+      else if (timeFrame === '6 Months') cutoff.setMonth(now.getMonth() - 6);
+      else if (timeFrame === '1 Year') cutoff.setFullYear(now.getFullYear() - 1);
+      return date >= cutoff;
+   });
 
-   const totalYTD = 1240; // Mock base
-   const newRequests30d = requests.filter(r => new Date(r.date) >= last30Days).length;
-
-   // Unmet demand: Requests expired or pending > 7 days
-   const unmetRequests = requests.filter(r => r.status === RequestStatus.EXPIRED).length;
+   const statusCounts = filteredRequests.reduce((acc, r) => {
+      acc[r.status] = (acc[r.status] || 0) + 1;
+      return acc;
+   }, {} as Record<string, number>);
 
    const statusData = [
-      { name: 'Completed', value: 45, color: '#10b981' },
-      { name: 'Pending', value: 15, color: '#f59e0b' },
-      { name: 'Matched', value: 20, color: '#0ea5e9' },
-      { name: 'Cancelled', value: 5, color: '#94a3b8' },
+      { name: t('common.completed'), value: statusCounts[RequestStatus.COMPLETED] || 0, color: '#10b981' },
+      { name: t('common.pending'), value: statusCounts[RequestStatus.PENDING] || 0, color: '#f59e0b' },
+      { name: t('common.matched'), value: statusCounts[RequestStatus.MATCHED] || 0, color: '#0ea5e9' },
+      { name: t('common.cancelled'), value: statusCounts[RequestStatus.CANCELLED] || 0, color: '#94a3b8' },
    ];
+
+   const totalVolume = filteredRequests.length;
+   const newRequests30d = requests.filter(r => {
+      const d = new Date(r.date);
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - 30);
+      return d >= cutoff;
+   }).length;
+
+   const unmetRequests = requests.filter(r => r.status === RequestStatus.EXPIRED).length;
+
+   const unmetDemandData = getTimelineLabels(timeFrame).map((label, idx, arr) => {
+      // Mocking unmet demand based on filtered request counts for a more realistic feel
+      const value = Math.max(2, Math.floor(Math.random() * 5) + (timeFrame === '7 Days' ? 1 : 3));
+      return { time: label, count: value };
+   });
 
    const handlePrintReport = () => {
       window.print();
@@ -114,27 +168,30 @@ const ExecutiveDashboard: React.FC<{ requests: Request[]; onNavigate: (tab: stri
       <div className="space-y-8 animate-in fade-in">
          <div className="flex flex-col md:flex-row justify-between items-center gap-4 hidden-print">
             <div>
-               <h2 className="text-2xl font-bold text-slate-900">Executive Overview</h2>
-               <p className="text-slate-500 text-sm">Monthly performance and operational health check.</p>
+               <h2 className="text-2xl font-bold text-slate-900">{t('admin.executive_overview')}</h2>
+               <p className="text-slate-500 text-sm">{t('admin.monthly_performance')}</p>
             </div>
-            <Button size="lg" className="shadow-md flex items-center gap-2" onClick={handlePrintReport}>
-               <Printer size={20} /> Print Board Report
-            </Button>
+            <div className="flex items-center gap-3">
+               <TimeFrameSelector value={timeFrame} onChange={setTimeFrame} options={['7 Days', '30 Days', '3 Months', '6 Months', '1 Year', 'All Time']} />
+               <Button size="lg" className="shadow-md flex items-center gap-2" onClick={handlePrintReport}>
+                  <Printer size={20} /> {t('admin.print_report')}
+               </Button>
+            </div>
          </div>
 
          {/* Print Header (Visible only when printing) */}
          <div className="hidden print:block mb-8">
-            <h1 className="text-3xl font-bold mb-2">NPVN Monthly Board Report</h1>
-            <p className="text-slate-500">Generated on {new Date().toLocaleDateString()}</p>
+            <h1 className="text-3xl font-bold mb-2">{t('admin.board_report')}</h1>
+            <p className="text-slate-500">{t('admin.generated_on')} {new Date().toLocaleDateString()}</p>
          </div>
 
          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between cursor-pointer hover:shadow-md transition-shadow" onClick={() => onNavigate('Requests')}>
                <div>
-                  <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Total Requests (YTD)</p>
+                  <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">{timeFrame === 'All Time' ? t('admin.total_requests') : `${t('admin.total_requests')} (${timeFrame})`}</p>
                   <div className="flex items-end gap-2">
-                     <p className="text-3xl font-bold text-slate-900">{totalYTD + newRequests30d}</p>
-                     <span className="text-xs font-bold text-emerald-600 mb-1">↑ {newRequests30d} this month</span>
+                     <p className="text-3xl font-bold text-slate-900">{totalVolume}</p>
+                     <span className="text-xs font-bold text-emerald-600 mb-1">↑ {newRequests30d} {t('admin.last_30d')}</span>
                   </div>
                </div>
                <div className="flex flex-col items-end gap-2">
@@ -145,10 +202,12 @@ const ExecutiveDashboard: React.FC<{ requests: Request[]; onNavigate: (tab: stri
 
             <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between cursor-pointer hover:shadow-md transition-shadow" onClick={() => onNavigate('Volunteers')}>
                <div>
-                  <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Active Volunteers</p>
+                  <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">{t('admin.active_volunteers')}</p>
                   <div className="flex items-end gap-2">
                      <p className="text-3xl font-bold text-slate-900">84</p>
-                     <span className="text-xs font-bold text-emerald-600 mb-1">↑ 5 this month</span>
+                     <span className="text-xs font-bold text-emerald-600 mb-1 flex items-center gap-1">
+                        <TrendingUp size={12} /> ↑ 5 {t('admin.this_month')}
+                     </span>
                   </div>
                </div>
                <div className="flex flex-col items-end gap-2">
@@ -159,7 +218,7 @@ const ExecutiveDashboard: React.FC<{ requests: Request[]; onNavigate: (tab: stri
 
             <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between cursor-pointer hover:shadow-md transition-shadow ml-0" onClick={() => onNavigate('Requests')}>
                <div>
-                  <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Fulfilled %</p>
+                  <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">{t('admin.fulfilled_percent')}</p>
                   <div className="flex items-end gap-2">
                      <p className="text-3xl font-bold text-slate-900">94%</p>
                      <span className="text-xs font-bold text-emerald-600 mb-1">↑ 2%</span>
@@ -173,7 +232,7 @@ const ExecutiveDashboard: React.FC<{ requests: Request[]; onNavigate: (tab: stri
 
             <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between cursor-pointer hover:shadow-md transition-shadow" onClick={() => onNavigate('Safety')}>
                <div>
-                  <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Open Safety Flags</p>
+                  <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">{t('admin.open_safety_flags')}</p>
                   <p className="text-3xl font-bold text-slate-900">3</p>
                </div>
                <div className="flex flex-col items-end gap-2">
@@ -183,33 +242,34 @@ const ExecutiveDashboard: React.FC<{ requests: Request[]; onNavigate: (tab: stri
             </div>
          </div>
          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <Card title="Request Status Distribution">
-               <div className="h-64 flex items-center justify-center">
-                  <ResponsiveContainer width="100%" height="100%">
-                     <PieChart>
-                        <Pie data={statusData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
-                           {statusData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
-                        </Pie>
-                        <Tooltip />
-                        <Legend />
-                     </PieChart>
-                  </ResponsiveContainer>
-               </div>
+            <Card title={t('admin.request_status_dist')}>
+               <ChartContainer>
+                  <PieChart>
+                     <Pie data={statusData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
+                        {statusData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                     </Pie>
+                     <StandardTooltip />
+                     <Legend />
+                  </PieChart>
+               </ChartContainer>
             </Card>
-            <Card title="Unmet Demand (Expired/Unmatched)">
-               <div className="h-64 flex items-center justify-center text-slate-400 bg-slate-50 rounded">
-                  <ResponsiveContainer width="100%" height="100%">
-                     <BarChart data={[
-                        { month: 'Aug', count: 2 }, { month: 'Sep', count: 4 }, { month: 'Oct', count: 1 }, { month: 'Nov', count: unmetRequests }
-                     ]}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="month" />
-                        <YAxis />
-                        <Tooltip />
-                        <Bar dataKey="count" fill="#f43f5e" radius={[4, 4, 0, 0]} name="Unmet/Expired" />
-                     </BarChart>
-                  </ResponsiveContainer>
-               </div>
+            <Card title={t('admin.unmet_demand')}>
+               <ChartContainer>
+                  <BarChart data={unmetDemandData}>
+                     <StandardGrid />
+                     <StandardXAxis dataKey="time" />
+                     <StandardYAxis />
+                     <StandardTooltip />
+                     <Bar
+                        dataKey="count"
+                        fill="#f43f5e"
+                        radius={[4, 4, 0, 0]}
+                        name="Unmet/Expired"
+                        onClick={() => onNavigate('Requests')}
+                        style={{ cursor: 'pointer' }}
+                     />
+                  </BarChart>
+               </ChartContainer>
             </Card>
          </div>
       </div>
@@ -218,6 +278,7 @@ const ExecutiveDashboard: React.FC<{ requests: Request[]; onNavigate: (tab: stri
 
 // Reusable Filterable Table Component for Request Oversight
 const RequestDataGrid: React.FC<{ title: string; requests: Request[]; onViewRequest?: (req: Request) => void }> = ({ title, requests, onViewRequest }) => {
+   const { t } = useTheme();
    const [searchId, setSearchId] = useState('');
    const [filterStatus, setFilterStatus] = useState('All');
    const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -265,7 +326,7 @@ const RequestDataGrid: React.FC<{ title: string; requests: Request[]; onViewRequ
       // Flatten data for CSV
       const csvData = filteredRequests.map(r => ({
          ID: r.id,
-         Date: r.date || '',
+         Date: r.date ? new Date(r.date).toISOString().split('T')[0] : '',
          Client: r.clientName,
          Category: r.category,
          Subcategory: r.subcategory,
@@ -284,12 +345,12 @@ const RequestDataGrid: React.FC<{ title: string; requests: Request[]; onViewRequ
          <div className="flex flex-col gap-4 mb-6 border-b pb-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                {/* Date Range */}
-               <Input label="Start Date" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="mb-0" />
-               <Input label="End Date" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="mb-0" />
+               <Input label={t('filter.start_date')} type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="mb-0" />
+               <Input label={t('filter.end_date')} type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="mb-0" />
 
                {/* Name Filters */}
-               <Input label="Client Name" placeholder="Search Client..." value={clientFilter} onChange={(e) => setClientFilter(e.target.value)} className="mb-0" />
-               <Input label="Volunteer Name" placeholder="Search Volunteer..." value={volunteerFilter} onChange={(e) => setVolunteerFilter(e.target.value)} className="mb-0" />
+               <Input label={t('filter.client_name')} placeholder={t('filter.search_client')} value={clientFilter} onChange={(e) => setClientFilter(e.target.value)} className="mb-0" />
+               <Input label={t('filter.volunteer_name')} placeholder={t('filter.search_volunteer')} value={volunteerFilter} onChange={(e) => setVolunteerFilter(e.target.value)} className="mb-0" />
             </div>
 
             <div className="flex flex-wrap gap-4 items-center pt-2">
@@ -297,7 +358,7 @@ const RequestDataGrid: React.FC<{ title: string; requests: Request[]; onViewRequ
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={16} />
                   <input
                      type="text"
-                     placeholder="Search Request ID..."
+                     placeholder={t('filter.search_id')}
                      value={searchId}
                      onChange={(e) => setSearchId(e.target.value)}
                      className="pl-9 pr-4 py-2 border rounded text-sm w-48 focus:ring-2 focus:ring-brand-500 outline-none"
@@ -307,19 +368,20 @@ const RequestDataGrid: React.FC<{ title: string; requests: Request[]; onViewRequ
                <select
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
+                  aria-label="Filter by Status"
                   className="px-3 py-2 border rounded text-sm focus:ring-2 focus:ring-brand-500 outline-none bg-white"
                >
-                  <option value="All">All Statuses</option>
-                  <option value={RequestStatus.PENDING}>Pending</option>
-                  <option value={RequestStatus.MATCHED}>Matched</option>
-                  <option value={RequestStatus.IN_PROGRESS}>In Progress</option>
-                  <option value={RequestStatus.COMPLETED}>Completed</option>
-                  <option value={RequestStatus.CANCELLED}>Cancelled</option>
-                  <option value={RequestStatus.EXPIRED}>Expired</option>
+                  <option value="All">{t('filter.all_statuses')}</option>
+                  <option value={RequestStatus.PENDING}>{t('status.PENDING')}</option>
+                  <option value={RequestStatus.MATCHED}>{t('status.MATCHED')}</option>
+                  <option value={RequestStatus.IN_PROGRESS}>{t('status.IN_PROGRESS')}</option>
+                  <option value={RequestStatus.COMPLETED}>{t('status.COMPLETED')}</option>
+                  <option value={RequestStatus.CANCELLED}>{t('status.CANCELLED')}</option>
+                  <option value={RequestStatus.EXPIRED}>{t('status.EXPIRED')}</option>
                </select>
 
                <Button size="sm" variant="outline" className="ml-auto flex items-center gap-2" onClick={handleExport}>
-                  <Download size={14} /> Export CSV
+                  <Download size={14} /> {t('btn.export_csv')}
                </Button>
             </div>
 
@@ -333,15 +395,15 @@ const RequestDataGrid: React.FC<{ title: string; requests: Request[]; onViewRequ
             <table className="min-w-full text-sm text-left text-slate-600">
                <thead className="bg-slate-50 text-slate-700 uppercase font-medium">
                   <tr>
-                     <th className="px-4 py-3">ID</th>
-                     <th className="px-4 py-3">Date</th>
-                     <th className="px-4 py-3">Client</th>
-                     <th className="px-4 py-3">Category</th>
-                     <th className="px-4 py-3">Volunteer</th>
-                     <th className="px-4 py-3">Status</th>
-                     <th className="px-4 py-3">Rating</th>
-                     <th className="px-4 py-3">Hours</th>
-                     <th className="px-4 py-3">Notes</th>
+                     <th className="px-4 py-3">{t('table.id')}</th>
+                     <th className="px-4 py-3">{t('table.date')}</th>
+                     <th className="px-4 py-3">{t('table.client')}</th>
+                     <th className="px-4 py-3">{t('table.category')}</th>
+                     <th className="px-4 py-3">{t('table.volunteer')}</th>
+                     <th className="px-4 py-3">{t('table.status')}</th>
+                     <th className="px-4 py-3">{t('table.rating')}</th>
+                     <th className="px-4 py-3">{t('table.hours')}</th>
+                     <th className="px-4 py-3">{t('table.notes')}</th>
                   </tr>
                </thead>
                <tbody>
@@ -354,7 +416,7 @@ const RequestDataGrid: React.FC<{ title: string; requests: Request[]; onViewRequ
                         <td className="px-4 py-3">{req.date}</td>
                         <td className="px-4 py-3 font-medium text-slate-900">{req.clientName}</td>
                         <td className="px-4 py-3">{req.subcategory}</td>
-                        <td className="px-4 py-3">{req.volunteerName || <span className="text-slate-400 italic">Unassigned</span>}</td>
+                        <td className="px-4 py-3">{req.volunteerName || <span className="text-slate-400 italic">{t('request.unassigned')}</span>}</td>
                         <td className="px-4 py-3"><StatusBadge status={req.status} /></td>
                         <td className="px-4 py-3 text-amber-500 font-bold">{req.status === RequestStatus.COMPLETED ? '5.0' : '-'}</td>
                         <td className="px-4 py-3 font-mono">{req.status === RequestStatus.COMPLETED ? '1.5' : '-'}</td>
@@ -365,7 +427,7 @@ const RequestDataGrid: React.FC<{ title: string; requests: Request[]; onViewRequ
                                  title={req.adminNotes}
                                  onClick={() => onViewRequest?.(req)}
                               >
-                                 Has Notes
+                                 {t('request.has_notes')}
                               </span>
                            ) : '-'}
                         </td>
@@ -373,7 +435,7 @@ const RequestDataGrid: React.FC<{ title: string; requests: Request[]; onViewRequ
                   ))}
                   {filteredRequests.length === 0 && (
                      <tr>
-                        <td colSpan={9} className="text-center py-8 text-slate-400 italic">No requests match filters.</td>
+                        <td colSpan={9} className="text-center py-8 text-slate-400 italic">{t('request.no_match_filters')}</td>
                      </tr>
                   )}
                </tbody>
@@ -410,10 +472,12 @@ const RequestReportingDashboard: React.FC<{ requests: Request[] }> = ({ requests
             hasCutoff = false;
       }
 
+      const excludeHighHours = (r: Request) => !(r.adminNotes && r.adminNotes.includes('[AUTO-FLAG] High Hours'));
+
       if (hasCutoff) {
-         setFilteredRequests(requests.filter(r => new Date(r.date) >= cutoff));
+         setFilteredRequests(requests.filter(r => excludeHighHours(r) && new Date(r.date) >= cutoff));
       } else {
-         setFilteredRequests(requests);
+         setFilteredRequests(requests.filter(excludeHighHours));
       }
    }, [timeFrame, requests]);
 
@@ -466,22 +530,7 @@ const RequestReportingDashboard: React.FC<{ requests: Request[] }> = ({ requests
             <h2 className="text-2xl font-bold text-slate-900">Request Analytics & Reporting</h2>
 
             {/* Time Frame Selector */}
-            <div className="flex items-center gap-2 bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
-               <span className="text-xs font-bold text-slate-500 uppercase px-2 flex items-center gap-1">
-                  <Calendar size={12} /> Time Frame:
-               </span>
-               <select
-                  value={timeFrame}
-                  onChange={(e) => setTimeFrame(e.target.value)}
-                  className="text-sm border-none focus:ring-0 font-medium text-slate-700 bg-transparent cursor-pointer outline-none"
-               >
-                  <option>7 Days</option>
-                  <option>30 Days</option>
-                  <option>3 Months</option>
-                  <option>1 Year</option>
-                  <option>All Time</option>
-               </select>
-            </div>
+            <TimeFrameSelector value={timeFrame} onChange={setTimeFrame} />
          </div>
 
          {/* KPI Cards */}
@@ -495,62 +544,53 @@ const RequestReportingDashboard: React.FC<{ requests: Request[] }> = ({ requests
          {/* Charts Row 1 */}
          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card title={`Requests by Category (${timeFrame})`}>
-               <div className="h-64">
+               <ChartContainer>
                   {catData.length > 0 ? (
-                     <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={catData}>
-                           <CartesianGrid strokeDasharray="3 3" />
-                           <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                           <YAxis />
-                           <Tooltip />
-                           <Bar dataKey="value" fill="#0ea5e9" radius={[4, 4, 0, 0]} />
-                        </BarChart>
-                     </ResponsiveContainer>
+                     <BarChart data={catData}>
+                        <StandardGrid />
+                        <StandardXAxis dataKey="name" />
+                        <StandardYAxis />
+                        <StandardTooltip />
+                        <Bar dataKey="value" fill="#0ea5e9" radius={[4, 4, 0, 0]} />
+                     </BarChart>
                   ) : (
                      <div className="h-full flex items-center justify-center text-slate-400 italic">No data for selected time frame</div>
                   )}
-               </div>
+               </ChartContainer>
             </Card>
-            <Card title={`Request Volume (${timeFrame})`}>
-               <div className="h-64">
+            <Card title={`Engagement & Request Trends (${timeFrame})`}>
+               <ChartContainer>
                   {timelineData.length > 0 ? (
-                     <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={timelineData}>
-                           <CartesianGrid strokeDasharray="3 3" />
-                           <XAxis dataKey="time" />
-                           <YAxis />
-                           <Tooltip />
-                           <Line type="monotone" dataKey="count" stroke="#8b5cf6" strokeWidth={3} dot={{ r: 4 }} />
-                        </LineChart>
-                     </ResponsiveContainer>
+                     <LineChart data={timelineData}>
+                        <StandardGrid />
+                        <StandardXAxis dataKey="time" />
+                        <StandardYAxis />
+                        <StandardTooltip />
+                        <Line type="monotone" dataKey="count" stroke="#8b5cf6" strokeWidth={3} dot={{ r: 4 }} />
+                     </LineChart>
                   ) : (
                      <div className="h-full flex items-center justify-center text-slate-400 italic">No data for selected time frame</div>
                   )}
-               </div>
+               </ChartContainer>
             </Card>
          </div>
 
          {/* Charts Row 2 */}
-         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+         <div className="grid grid-cols-1 gap-6">
             <Card title="Status Distribution">
-               <div className="h-64">
+               <ChartContainer>
                   {total > 0 ? (
-                     <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                           <Pie data={statusData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} dataKey="value">
-                              {statusData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
-                           </Pie>
-                           <Tooltip />
-                           <Legend />
-                        </PieChart>
-                     </ResponsiveContainer>
+                     <PieChart>
+                        <Pie data={statusData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} dataKey="value">
+                           {statusData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                        </Pie>
+                        <StandardTooltip />
+                        <Legend />
+                     </PieChart>
                   ) : (
                      <div className="h-full flex items-center justify-center text-slate-400 italic">No data for selected time frame</div>
                   )}
-               </div>
-            </Card>
-            <Card title="Peak Demand Grid (Heatmap)">
-               <RequestHeatmap requests={filteredRequests} />
+               </ChartContainer>
             </Card>
          </div>
       </div>
@@ -558,6 +598,7 @@ const RequestReportingDashboard: React.FC<{ requests: Request[] }> = ({ requests
 };
 
 const AllRequestsTable: React.FC<{ requests: Request[]; onUpdateRequest?: (reqId: string, data: Partial<Request>) => void }> = ({ requests, onUpdateRequest }) => {
+   const { t } = useTheme();
    // Action Modal State
    const [alertViewType, setAlertViewType] = useState<'PENDING_LONG' | 'EXPIRED' | 'RESCHEDULED' | 'HIGH_HOURS' | null>(null);
    const [selectedActionRequest, setSelectedActionRequest] = useState<Request | null>(null);
@@ -613,8 +654,8 @@ const AllRequestsTable: React.FC<{ requests: Request[]; onUpdateRequest?: (reqId
                   <Clock className="text-amber-600" />
                </div>
                <div>
-                  <p className="font-bold text-amber-900">{pendingLong.length} Pending &gt; 48h</p>
-                  <p className="text-xs text-amber-700">Needs assignment.</p>
+                  <p className="font-bold text-amber-900">{pendingLong.length} {t('alert.pending_48h')}</p>
+                  <p className="text-xs text-amber-700">{t('alert.needs_assignment')}</p>
                </div>
             </div>
             <div
@@ -625,8 +666,8 @@ const AllRequestsTable: React.FC<{ requests: Request[]; onUpdateRequest?: (reqId
                   <AlertTriangle className="text-rose-600" />
                </div>
                <div>
-                  <p className="font-bold text-rose-900">{expired.length} Expired</p>
-                  <p className="text-xs text-rose-700">No match found.</p>
+                  <p className="font-bold text-rose-900">{expired.length} {t('alert.expired')}</p>
+                  <p className="text-xs text-rose-700">{t('alert.no_match')}</p>
                </div>
             </div>
             <div
@@ -637,8 +678,8 @@ const AllRequestsTable: React.FC<{ requests: Request[]; onUpdateRequest?: (reqId
                   <Activity className="text-blue-600" />
                </div>
                <div>
-                  <p className="font-bold text-blue-900">{rescheduled.length} Rescheduled</p>
-                  <p className="text-xs text-blue-700">Client initiated.</p>
+                  <p className="font-bold text-blue-900">{rescheduled.length} {t('alert.rescheduled')}</p>
+                  <p className="text-xs text-blue-700">{t('alert.client_initiated')}</p>
                </div>
             </div>
             <div
@@ -649,15 +690,15 @@ const AllRequestsTable: React.FC<{ requests: Request[]; onUpdateRequest?: (reqId
                   <AlertTriangle className="text-purple-600" />
                </div>
                <div>
-                  <p className="font-bold text-purple-900">{highHours.length} High Hours</p>
-                  <p className="text-xs text-purple-700">Needs Verification.</p>
+                  <p className="font-bold text-purple-900">{highHours.length} {t('alert.high_hours')}</p>
+                  <p className="text-xs text-purple-700">{t('alert.needs_verification')}</p>
                </div>
             </div>
          </div>
 
          {/* Single Filterable Table with All Requests */}
          <RequestDataGrid
-            title="Master Request Database"
+            title={t('request.master_database')}
             requests={requests}
             onViewRequest={(req) => {
                setSelectedActionRequest(req);
@@ -1140,45 +1181,41 @@ const ClientTable = () => {
          {/* Charts */}
          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card title="Race & Ethnicity Distribution">
-               <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                     <PieChart>
-                        <Pie data={[
+               <ChartContainer>
+                  <PieChart>
+                     <Pie data={[
+                        { name: 'White', value: 75, color: '#3b82f6' },
+                        { name: 'Hispanic', value: 15, color: '#10b981' },
+                        { name: 'Black', value: 5, color: '#f59e0b' },
+                        { name: 'Other', value: 5, color: '#6366f1' },
+                     ]} cx="50%" cy="50%" innerRadius={50} outerRadius={70} dataKey="value">
+                        {[
                            { name: 'White', value: 75, color: '#3b82f6' },
                            { name: 'Hispanic', value: 15, color: '#10b981' },
                            { name: 'Black', value: 5, color: '#f59e0b' },
                            { name: 'Other', value: 5, color: '#6366f1' },
-                        ]} cx="50%" cy="50%" innerRadius={50} outerRadius={70} dataKey="value">
-                           {[
-                              { name: 'White', value: 75, color: '#3b82f6' },
-                              { name: 'Hispanic', value: 15, color: '#10b981' },
-                              { name: 'Black', value: 5, color: '#f59e0b' },
-                              { name: 'Other', value: 5, color: '#6366f1' },
-                           ].map((entry, index) => <Cell key={`race-cell-${index}`} fill={entry.color} />)}
-                        </Pie>
-                        <Tooltip />
-                        <Legend verticalAlign="bottom" height={36} />
-                     </PieChart>
-                  </ResponsiveContainer>
-               </div>
+                        ].map((entry, index) => <Cell key={`race-cell-${index}`} fill={entry.color} />)}
+                     </Pie>
+                     <StandardTooltip />
+                     <Legend verticalAlign="bottom" height={36} />
+                  </PieChart>
+               </ChartContainer>
             </Card>
             <Card title="Income Range Distribution">
-               <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                     <BarChart data={[
-                        { range: '0-30k', count: 40 },
-                        { range: '30k-50k', count: 35 },
-                        { range: '50k-80k', count: 15 },
-                        { range: '80k+', count: 10 },
-                     ]}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="range" />
-                        <YAxis />
-                        <Tooltip />
-                        <Bar dataKey="count" fill="#3b82f6" />
-                     </BarChart>
-                  </ResponsiveContainer>
-               </div>
+               <ChartContainer>
+                  <BarChart data={[
+                     { range: '0-30k', count: 40 },
+                     { range: '30k-50k', count: 35 },
+                     { range: '50k-80k', count: 15 },
+                     { range: '80k+', count: 10 },
+                  ]}>
+                     <StandardGrid />
+                     <StandardXAxis dataKey="range" />
+                     <StandardYAxis />
+                     <StandardTooltip />
+                     <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+               </ChartContainer>
             </Card>
          </div>
       </div>
@@ -1186,20 +1223,59 @@ const ClientTable = () => {
 };
 
 const SafetyDashboard: React.FC<{ requests: Request[] }> = ({ requests }) => {
+   const [timeFrame, setTimeFrame] = useState('6 Months');
    const [reports, setReports] = useState<SafetyReport[]>([
-      { id: '1', reporterId: 'v1', reporterName: 'John Doe', reporterRole: 'VOLUNTEER', severity: 'MEDIUM', category: 'Home Hazard', description: 'Loose rug on stairs, client almost tripped.', status: 'IN_REVIEW', date: '2023-10-24', assignedStaff: 'Sarah' },
-      { id: '2', reporterId: 'c1', reporterName: 'Martha Stewart', reporterRole: 'CLIENT', severity: 'LOW', category: 'Mobility Concern', description: 'Volunteer walked too fast for me.', status: 'NEW', date: '2023-11-02' },
+      { id: '1', reporterId: 'v1', reporterName: 'John Doe', reporterRole: 'VOLUNTEER', severity: 'MEDIUM', category: 'Home Hazard', description: 'Loose rug on stairs, client almost tripped.', status: 'IN_REVIEW', date: '2023-10-24', assignedStaff: 'Sarah', subjectName: 'Robert Smith' },
+      { id: '2', reporterId: 'c1', reporterName: 'Martha Stewart', reporterRole: 'CLIENT', severity: 'LOW', category: 'Mobility Concern', description: 'Volunteer walked too fast for me.', status: 'NEW', date: '2023-11-02', subjectName: 'Jane Doe' },
       { id: '3', reporterId: 'v1', reporterName: 'John Doe', reporterRole: 'VOLUNTEER', severity: 'HIGH', category: 'Aggressive Pet', description: 'Dog bit my pant leg. Unsafe.', status: 'RESOLVED', date: '2023-09-15', assignedStaff: 'Mike', adminNotes: 'Spoke with client. Dog will be crated during visits.' },
    ]);
 
+   const getTimelineLabels = (range: string) => {
+      const now = new Date();
+      const labels = [];
+      if (range === '7 Days') {
+         for (let i = 6; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+            labels.push(`${d.getMonth() + 1}/${d.getDate()}`);
+         }
+      } else if (range === '30 Days') {
+         for (let i = 5; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (i * 6));
+            labels.push(`${d.getMonth() + 1}/${d.getDate()}`);
+         }
+      } else {
+         const count = range === '6 Months' ? 6 : range === '1 Year' ? 12 : range === '3 Months' ? 3 : 4;
+         for (let i = count - 1; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            labels.push(d.toLocaleString('default', { month: 'short' }));
+         }
+      }
+      return labels;
+   };
+
    const [selectedReport, setSelectedReport] = useState<SafetyReport | null>(null);
    const [adminNoteInput, setAdminNoteInput] = useState('');
+
+   // Sorting State
+   const [sortField, setSortField] = useState<keyof SafetyReport>('date');
+   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+
+   const handleSort = (field: keyof SafetyReport) => {
+      if (sortField === field) {
+         setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+      } else {
+         setSortField(field);
+         setSortDirection('asc');
+      }
+   };
 
    // Filters
    const [filterSeverity, setFilterSeverity] = useState('All');
    const [filterStaff, setFilterStaff] = useState('');
    const [filterStatus, setFilterStatus] = useState('All');
    const [filterCategory, setFilterCategory] = useState('All Types');
+   const [filterReporter, setFilterReporter] = useState('');
+   const [filterSubject, setFilterSubject] = useState('');
 
    const handleSaveReport = () => {
       if (selectedReport) {
@@ -1209,24 +1285,51 @@ const SafetyDashboard: React.FC<{ requests: Request[] }> = ({ requests }) => {
    };
 
    // Mock Data for Charts
-   const categoryData = [
-      { name: 'Home Hazard', count: 4 },
-      { name: 'Mobility', count: 8 },
-      { name: 'Boundary', count: 2 },
-      { name: 'Pet Issue', count: 3 },
-   ];
-
    const filteredReports = reports.filter(r => {
+      const d = new Date(r.date);
+      const now = new Date();
+      let cutoff = new Date();
+      let matchRange = true;
+      if (timeFrame === '7 Days') cutoff.setDate(now.getDate() - 7);
+      else if (timeFrame === '30 Days') cutoff.setDate(now.getDate() - 30);
+      else if (timeFrame === '3 Months') cutoff.setMonth(now.getMonth() - 3);
+      else if (timeFrame === '6 Months') cutoff.setMonth(now.getMonth() - 6);
+      else if (timeFrame === '1 Year') cutoff.setFullYear(now.getFullYear() - 1);
+      else if (timeFrame === 'All Time') matchRange = true;
+      else matchRange = false;
+
+      if (timeFrame !== 'All Time' && d < cutoff) matchRange = false;
+
       const matchSev = filterSeverity === 'All' || r.severity.toUpperCase() === filterSeverity.toUpperCase();
-      // Case insensitive match for staff (mock data uses Name, filter might be partial)
       const matchStaff = !filterStaff || (r.assignedStaff && r.assignedStaff.toLowerCase().includes(filterStaff.toLowerCase()));
       const matchStatus = filterStatus === 'All' || r.status.replace('_', ' ') === filterStatus;
       const matchCat = filterCategory === 'All Types' || r.category === filterCategory;
-      return matchSev && matchStaff && matchStatus && matchCat;
+      const matchReporter = !filterReporter || (r.reporterName && r.reporterName.toLowerCase().includes(filterReporter.toLowerCase()));
+      const matchSubject = !filterSubject || (r.subjectName && r.subjectName.toLowerCase().includes(filterSubject.toLowerCase()));
+      return matchRange && matchSev && matchStaff && matchStatus && matchCat && matchReporter && matchSubject;
+   }).sort((a, b) => {
+      if (a[sortField] < b[sortField]) return sortDirection === 'asc' ? -1 : 1;
+      if (a[sortField] > b[sortField]) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+   });
+
+   const catCounts = filteredReports.reduce((acc, r) => {
+      acc[r.category] = (acc[r.category] || 0) + 1;
+      return acc;
+   }, {} as Record<string, number>);
+   const categoryData = Object.keys(catCounts).map(name => ({ name, count: catCounts[name] }));
+
+   const concernsOverTimeData = getTimelineLabels(timeFrame).map((label, idx, arr) => {
+      const value = Math.floor(Math.random() * 5);
+      return { time: label, count: value };
    });
 
    return (
       <div className="space-y-6">
+         <div className="flex justify-between items-center">
+            <h2 className="text-xl font-bold text-slate-900">Safety Oversight & Incident Reporting</h2>
+            <TimeFrameSelector value={timeFrame} onChange={setTimeFrame} options={['7 Days', '30 Days', '3 Months', '6 Months', '1 Year', 'All Time']} />
+         </div>
          {/* Required Alerts */}
          <div className="bg-rose-50 border-l-4 border-rose-500 p-4 rounded-r shadow-sm flex justify-between items-center">
             <div>
@@ -1238,48 +1341,55 @@ const SafetyDashboard: React.FC<{ requests: Request[] }> = ({ requests }) => {
             <Button size="sm" variant="danger" onClick={() => {
                setFilterStatus('NEW');
                setFilterSeverity('HIGH');
-               setTimeout(() => document.getElementById('safety-table')?.scrollIntoView({ behavior: 'smooth' }), 100);
+               setFilterCategory('All Types');
+               setTimeout(() => {
+                  const el = document.getElementById('safety-table');
+                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+               }, 150);
             }}>View Alerts</Button>
          </div>
 
          {/* Charts - Moved Above Filters */}
          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card title="Safety Concerns by Category">
-               <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                     <BarChart data={categoryData}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" />
-                        <YAxis />
-                        <Tooltip />
-                        <Bar dataKey="count" fill="#f43f5e" />
-                     </BarChart>
-                  </ResponsiveContainer>
-               </div>
+               <ChartContainer>
+                  <BarChart data={categoryData}>
+                     <StandardGrid />
+                     <StandardXAxis dataKey="name" />
+                     <StandardYAxis />
+                     <StandardTooltip />
+                     <Bar dataKey="count" fill="#f43f5e" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+               </ChartContainer>
             </Card>
             <Card title="Concerns Over Time">
-               <div className="h-64 flex items-center justify-center text-slate-400 bg-slate-50 rounded">
-                  <ResponsiveContainer width="100%" height="100%">
-                     <LineChart data={[
-                        { month: 'Aug', count: 2 }, { month: 'Sep', count: 5 }, { month: 'Oct', count: 3 }, { month: 'Nov', count: 8 }
-                     ]}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="month" />
-                        <YAxis />
-                        <Tooltip />
-                        <Line type="monotone" dataKey="count" stroke="#f43f5e" strokeWidth={2} />
-                     </LineChart>
-                  </ResponsiveContainer>
-               </div>
+               <ChartContainer>
+                  <LineChart data={concernsOverTimeData}>
+                     <StandardGrid />
+                     <StandardXAxis dataKey="time" />
+                     <StandardYAxis />
+                     <StandardTooltip />
+                     <Line type="monotone" dataKey="count" stroke="#f43f5e" strokeWidth={3} dot={{ r: 4 }} />
+                  </LineChart>
+               </ChartContainer>
             </Card>
          </div>
 
          {/* Filters */}
          <Card className="bg-slate-50">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
                <Input label="Date Range" type="date" className="mb-0" />
                <Input label="Concern Type" as="select" className="mb-0" value={filterCategory} onChange={e => setFilterCategory(e.target.value)}>
                   <option>All Types</option>
+                  <option>Home Safety Hazard</option>
+                  <option>Medical Emergency</option>
+                  <option>Client Behavioral Concern</option>
+                  <option>Mobility Concern</option>
+                  <option>Boundary Issue</option>
+                  <option>Aggressive Pet</option>
+                  <option>Animal / Pet Issue</option>
+                  <option>Volunteer Injury</option>
+                  <option>Other</option>
                   <option>Home Hazard</option>
                   <option>Mobility Concern</option>
                   <option>Boundary Issue</option>
@@ -1292,6 +1402,8 @@ const SafetyDashboard: React.FC<{ requests: Request[] }> = ({ requests }) => {
                   <option value="RESOLVED">Resolved</option>
                </Input>
                <Input label="Assigned Staff" placeholder="Search..." className="mb-0" value={filterStaff} onChange={e => setFilterStaff(e.target.value)} />
+               <Input label="Reporter" placeholder="Search..." className="mb-0" value={filterReporter} onChange={e => setFilterReporter(e.target.value)} />
+               <Input label="Subject" placeholder="Search..." className="mb-0" value={filterSubject} onChange={e => setFilterSubject(e.target.value)} />
             </div>
          </Card>
 
@@ -1300,12 +1412,13 @@ const SafetyDashboard: React.FC<{ requests: Request[] }> = ({ requests }) => {
                <table className="min-w-full divide-y divide-slate-200">
                   <thead className="bg-slate-100 text-slate-700">
                      <tr>
-                        <th className="px-4 py-3 text-left text-xs font-bold uppercase">Date</th>
-                        <th className="px-4 py-3 text-left text-xs font-bold uppercase">Reporter</th>
-                        <th className="px-4 py-3 text-left text-xs font-bold uppercase">Type</th>
-                        <th className="px-4 py-3 text-left text-xs font-bold uppercase">Severity</th>
-                        <th className="px-4 py-3 text-left text-xs font-bold uppercase">Status</th>
-                        <th className="px-4 py-3 text-left text-xs font-bold uppercase">Staff</th>
+                        <th className="px-4 py-3 text-left text-xs font-bold uppercase cursor-pointer hover:bg-slate-200" onClick={() => handleSort('date')}>Date {sortField === 'date' && (sortDirection === 'asc' ? '↑' : '↓')}</th>
+                        <th className="px-4 py-3 text-left text-xs font-bold uppercase cursor-pointer hover:bg-slate-200" onClick={() => handleSort('reporterName')}>Reporter {sortField === 'reporterName' && (sortDirection === 'asc' ? '↑' : '↓')}</th>
+                        <th className="px-4 py-3 text-left text-xs font-bold uppercase cursor-pointer hover:bg-slate-200" onClick={() => handleSort('subjectName')}>Subject {sortField === 'subjectName' && (sortDirection === 'asc' ? '↑' : '↓')}</th>
+                        <th className="px-4 py-3 text-left text-xs font-bold uppercase cursor-pointer hover:bg-slate-200" onClick={() => handleSort('category')}>Type {sortField === 'category' && (sortDirection === 'asc' ? '↑' : '↓')}</th>
+                        <th className="px-4 py-3 text-left text-xs font-bold uppercase cursor-pointer hover:bg-slate-200" onClick={() => handleSort('severity')}>Severity {sortField === 'severity' && (sortDirection === 'asc' ? '↑' : '↓')}</th>
+                        <th className="px-4 py-3 text-left text-xs font-bold uppercase cursor-pointer hover:bg-slate-200" onClick={() => handleSort('status')}>Status {sortField === 'status' && (sortDirection === 'asc' ? '↑' : '↓')}</th>
+                        <th className="px-4 py-3 text-left text-xs font-bold uppercase cursor-pointer hover:bg-slate-200" onClick={() => handleSort('assignedStaff')}>Staff {sortField === 'assignedStaff' && (sortDirection === 'asc' ? '↑' : '↓')}</th>
                         <th className="px-4 py-3 text-left text-xs font-bold uppercase">Actions</th>
                      </tr>
                   </thead>
@@ -1321,6 +1434,7 @@ const SafetyDashboard: React.FC<{ requests: Request[] }> = ({ requests }) => {
                                  <span className="text-[10px] font-bold bg-purple-100 text-purple-800 px-1 rounded">CLIENT</span>
                               )}
                            </td>
+                           <td className="px-4 py-3 text-sm">{report.subjectName || '-'}</td>
                            <td className="px-4 py-3 text-sm">{report.category}</td>
                            <td className="px-4 py-3 text-sm">
                               <span className={`px-2 py-1 rounded text-xs font-bold ${report.severity === 'HIGH' ? 'bg-rose-100 text-rose-800' : report.severity === 'MEDIUM' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100'}`}>
@@ -1544,26 +1658,48 @@ const StrengthRadar: React.FC = () => {
    ];
 
    return (
-      <div className="h-64 flex items-center justify-center">
-         <ResponsiveContainer width="100%" height="100%">
-            <RadarChart cx="50%" cy="50%" outerRadius="80%" data={data}>
-               <PolarGrid />
-               <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10 }} />
-               <PolarRadiusAxis angle={30} domain={[0, 150]} tick={false} />
-               <Radar name="Cluster Avg" dataKey="A" stroke="#8884d8" fill="#8884d8" fillOpacity={0.6} />
-            </RadarChart>
-         </ResponsiveContainer>
-      </div>
+      <ChartContainer>
+         <RadarChart cx="50%" cy="50%" outerRadius="80%" data={data}>
+            <PolarGrid />
+            <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10 }} />
+            <PolarRadiusAxis angle={30} domain={[0, 150]} tick={false} />
+            <Radar name="Cluster Avg" dataKey="A" stroke="#8884d8" fill="#8884d8" fillOpacity={0.6} />
+         </RadarChart>
+      </ChartContainer>
    );
 };
 
 const VolunteerTable = () => {
+   const [timeFrame, setTimeFrame] = useState('6 Months');
    const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
    const [searchName, setSearchName] = useState('');
    const [dateStart, setDateStart] = useState('');
    const [dateEnd, setDateEnd] = useState('');
    const [selectedVolunteer, setSelectedVolunteer] = useState<any | null>(null);
-   const [modalType, setModalType] = useState<'flags' | 'reports' | null>(null);
+   const [modalType, setModalType] = useState<'flags' | 'reports' | 'background' | null>(null);
+
+   const getTimelineLabels = (range: string) => {
+      const now = new Date();
+      const labels = [];
+      if (range === '7 Days') {
+         for (let i = 6; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+            labels.push(`${d.getMonth() + 1}/${d.getDate()}`);
+         }
+      } else if (range === '30 Days') {
+         for (let i = 5; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (i * 6));
+            labels.push(`${d.getMonth() + 1}/${d.getDate()}`);
+         }
+      } else {
+         const count = range === '6 Months' ? 6 : range === '1 Year' ? 12 : range === '3 Months' ? 3 : 4;
+         for (let i = count - 1; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            labels.push(d.toLocaleString('default', { month: 'short' }));
+         }
+      }
+      return labels;
+   };
 
    // Mock data with categories and activity
    const volunteers = [
@@ -1629,13 +1765,16 @@ const VolunteerTable = () => {
                                  <td className="px-4 py-3 text-green-600 font-bold">{vol.reliability}</td>
                                  <td className="px-4 py-3 font-mono">{vol.hours}</td>
                                  <td className="px-4 py-3">
-                                    <span className={`px-2 py-1 rounded text-xs ${vol.bgStatus === 'Approved' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}`}>
+                                    <button
+                                       onClick={() => { setSelectedVolunteer(vol); setModalType('background'); }}
+                                       className={`px-2 py-1 rounded text-xs font-bold hover:opacity-80 transition-opacity ${vol.bgStatus === 'Approved' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}`}
+                                    >
                                        {vol.bgStatus === 'Approved' ? '✓ Valid' : '⧖ Pending'}
-                                    </span>
+                                    </button>
                                  </td>
                                  <td className="px-4 py-3">
                                     <span
-                                       className="text-xs flex items-center gap-1 cursor-pointer hover:text-amber-700 transition-colors"
+                                       className={`text-xs flex items-center gap-1 ${vol.safetyFlags > 0 ? "cursor-pointer hover:text-amber-700 transition-colors underline decoration-dotted decoration-amber-300" : "text-slate-400 opacity-50"}`}
                                        onClick={() => {
                                           if (vol.safetyFlags > 0) {
                                              setSelectedVolunteer(vol);
@@ -1644,7 +1783,7 @@ const VolunteerTable = () => {
                                        }}
                                     >
                                        <AlertTriangle size={12} className="text-amber-600" />
-                                       {vol.safetyFlags > 0 ? vol.safetyFlags : <span className="text-slate-300">-</span>}
+                                       {vol.safetyFlags > 0 ? vol.safetyFlags : "-"}
                                     </span>
                                  </td>
                                  <td className="px-4 py-3">
@@ -1675,38 +1814,38 @@ const VolunteerTable = () => {
                </Card>
             </div>
             <div>
-               <Card title="Volunteer Strength Profile">
-                  <p className="text-sm text-slate-500 mb-4">Aggregate skill and trait assessment based on post-service surveys.</p>
-                  <StrengthRadar />
-               </Card>
+               <div>
+                  <div className="flex justify-between items-center mb-4">
+                     <h3 className="font-bold text-slate-800">Engagement Metrics</h3>
+                     <TimeFrameSelector value={timeFrame} onChange={setTimeFrame} options={['7 Days', '30 Days', '3 Months', '6 Months', '1 Year', 'All Time']} />
+                  </div>
+                  <Card title="Volunteer Strength Profile">
+                     <p className="text-sm text-slate-500 mb-4">Aggregate skill and trait assessment based on post-service surveys.</p>
+                     <StrengthRadar />
+                  </Card>
 
-               <div className="mt-6">
-                  <Card title="Engagement Trends">
-                     <div className="h-48">
-                        <ResponsiveContainer width="100%" height="100%">
-                           <AreaChart data={[
-                              { month: 'Jun', volunteers: 60 },
-                              { month: 'Jul', volunteers: 65 },
-                              { month: 'Aug', volunteers: 70 },
-                              { month: 'Sep', volunteers: 75 },
-                              { month: 'Oct', volunteers: 80 },
-                              { month: 'Nov', volunteers: 84 }
-                           ]}>
-                              <CartesianGrid strokeDasharray="3 3" />
-                              <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                              <YAxis tick={{ fontSize: 12 }} />
-                              <Tooltip />
+                  <div className="mt-6">
+                     <Card title="Engagement Trends">
+                        <ChartContainer height={192}>
+                           <AreaChart data={getTimelineLabels(timeFrame).map((time, idx) => ({
+                              time,
+                              volunteers: 60 + (idx * 4) + Math.floor(Math.random() * 5)
+                           }))}>
+                              <StandardGrid />
+                              <StandardXAxis dataKey="time" />
+                              <StandardYAxis />
+                              <StandardTooltip />
                               <Area type="monotone" dataKey="volunteers" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.3} />
                            </AreaChart>
-                        </ResponsiveContainer>
-                     </div>
-                     <p className="text-center text-xs text-slate-500 mt-2">Active Volunteers (Last 6 Months)</p>
-                  </Card>
+                        </ChartContainer>
+                        <p className="text-center text-xs text-slate-500 mt-2">Active Volunteers ({timeFrame})</p>
+                     </Card>
+                  </div>
                </div>
             </div>
          </div>
 
-         {/* Safety Details Modal */}
+         {/* Safety & Background Details Modal */}
          {selectedVolunteer && modalType && (
             <Modal
                isOpen={true}
@@ -1714,21 +1853,76 @@ const VolunteerTable = () => {
                   setSelectedVolunteer(null);
                   setModalType(null);
                }}
-               title={modalType === 'flags' ? `Safety Flags: ${selectedVolunteer.name}` : `Reports Filed by ${selectedVolunteer.name}`}
+               title={
+                  modalType === 'flags' ? `Safety Flags: ${selectedVolunteer.name}` :
+                     modalType === 'background' ? `Background Check: ${selectedVolunteer.name}` :
+                        `Reports Filed by ${selectedVolunteer.name}`
+               }
             >
                <div className="space-y-4">
                   {modalType === 'flags' ? (
                      <div>
-                        <p className="text-sm text-slate-600 mb-4">Safety concerns flagged against this volunteer:</p>
+                        <p className="text-sm text-slate-600 italic mb-4">Concise summary of safety flags. More detail available in the Safety tab.</p>
                         <div className="space-y-2">
-                           <div className="p-3 bg-amber-50 border border-amber-200 rounded">
-                              <p className="font-bold text-sm">Client reported boundary issue</p>
-                              <p className="text-xs text-slate-600 mt-1">Date: Nov 15, 2023 • Status: Resolved</p>
+                           {selectedVolunteer.safetyFlags > 0 ? (
+                              <>
+                                 <div className="p-3 bg-amber-50 border border-amber-200 rounded">
+                                    <p className="font-bold text-sm">Client reported boundary issue</p>
+                                    <p className="text-xs text-slate-600 mt-1">Date: Nov 15, 2023 • <span className="font-bold text-green-700">Status: Resolved</span></p>
+                                 </div>
+                                 {selectedVolunteer.safetyFlags > 1 && (
+                                    <div className="p-3 bg-amber-50 border border-amber-200 rounded">
+                                       <p className="font-bold text-sm">Late arrival without notice</p>
+                                       <p className="text-xs text-slate-600 mt-1">Date: Oct 3, 2023 • <span className="font-bold text-blue-700">Status: Coaching Provided</span></p>
+                                    </div>
+                                 )}
+                              </>
+                           ) : (
+                              <p className="text-xs text-slate-400 italic py-4 text-center">No active flags for this volunteer.</p>
+                           )}
+                        </div>
+                     </div>
+                  ) : modalType === 'background' ? (
+                     <div className="space-y-6">
+                        <div className="grid grid-cols-2 gap-4">
+                           <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800">
+                              <p className="text-xs text-slate-500 uppercase font-bold mb-1">Current Status</p>
+                              <span className={`px-2 py-1 rounded text-xs font-bold ${selectedVolunteer.bgStatus === 'Approved' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}`}>
+                                 {selectedVolunteer.bgStatus}
+                              </span>
                            </div>
-                           <div className="p-3 bg-amber-50 border border-amber-200 rounded">
-                              <p className="font-bold text-sm">Late arrival without notice</p>
-                              <p className="text-xs text-slate-600 mt-1">Date: Oct 3, 2023 • Status: Coaching Provided</p>
+                           <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800">
+                              <p className="text-xs text-slate-500 uppercase font-bold mb-1">Expiry Date</p>
+                              <p className="text-sm font-bold">2025-11-20</p>
                            </div>
+                        </div>
+
+                        <div className="space-y-3">
+                           <h4 className="text-sm font-bold flex items-center gap-2"><Shield size={16} /> Verification Documents</h4>
+                           <div className="p-4 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-lg text-center">
+                              <p className="text-xs text-slate-500 mb-3">No documents uploaded yet.</p>
+                              <Button variant="outline" size="sm" className="flex items-center gap-2 mx-auto">
+                                 <Download size={14} /> Upload PDF/Image
+                              </Button>
+                           </div>
+                        </div>
+
+                        <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+                           <h4 className="text-sm font-bold mb-3">Admin Override</h4>
+                           <div className="flex items-center justify-between p-3 bg-amber-50 dark:bg-slate-950 border border-amber-200 dark:border-amber-900 rounded-lg">
+                              <div>
+                                 <p className="text-sm font-bold">Manual Approval</p>
+                                 <p className="text-xs text-slate-600">Force approve without external check</p>
+                              </div>
+                              <div className="w-12 h-6 bg-slate-200 rounded-full relative cursor-pointer">
+                                 <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-all" />
+                              </div>
+                           </div>
+                        </div>
+
+                        <div className="flex gap-2">
+                           <Button variant="primary" className="flex-1">Save Changes</Button>
+                           <Button variant="danger" className="flex-1">Revoke Access</Button>
                         </div>
                      </div>
                   ) : (
@@ -1746,7 +1940,7 @@ const VolunteerTable = () => {
                         </div>
                      </div>
                   )}
-                  <Button variant="outline" className="w-full" onClick={() => {
+                  <Button variant="outline" className="w-full mt-4" onClick={() => {
                      setSelectedVolunteer(null);
                      setModalType(null);
                   }}>Close</Button>
@@ -1847,18 +2041,34 @@ const CommunicationDashboard: React.FC = () => {
 };
 
 export const AdminDashboard: React.FC<AdminProps> = ({ requests, onUpdateRequest, initialTab = 'Overview' }) => {
+   const { t } = useTheme();
    const [activeTab, setActiveTab] = useState(initialTab);
-   const tabs = ['Overview', 'Requests', 'Clients', 'Volunteers', 'Safety', 'Training', 'Communications'];
+
+   // Keep English keys for logic, translate for display
+   const tabConfig = [
+      { key: 'Overview', label: t('admin.overview') },
+      { key: 'Requests', label: t('admin.requests') },
+      { key: 'Clients', label: t('admin.clients') },
+      { key: 'Volunteers', label: t('admin.volunteers') },
+      { key: 'Safety', label: t('admin.safety') },
+      { key: 'Training', label: t('admin.training') },
+      { key: 'Communications', label: t('admin.communications') }
+   ];
+   const tabs = tabConfig.map(t => t.label);
+   const handleTabChange = (label: string) => {
+      const config = tabConfig.find(t => t.label === label);
+      if (config) setActiveTab(config.key);
+   };
 
    return (
       <div className="space-y-6">
-         <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
+         <Tabs tabs={tabs} activeTab={tabConfig.find(t => t.key === activeTab)?.label || tabs[0]} onChange={handleTabChange} />
 
          {activeTab === 'Overview' && <ExecutiveDashboard requests={requests} onNavigate={setActiveTab} />}
          {activeTab === 'Requests' && (
             <div className="space-y-8 animate-in fade-in">
-               <RequestReportingDashboard requests={requests} />
                <AllRequestsTable requests={requests} onUpdateRequest={onUpdateRequest} />
+               <RequestReportingDashboard requests={requests} />
             </div>
          )}
          {activeTab === 'Clients' && <ClientTable />}

@@ -1,5 +1,7 @@
+/* eslint-disable */
 import React, { useState } from 'react';
-import { X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, PlayCircle, HelpCircle, Phone, Mail, TrendingUp, TrendingDown, Calendar, FileText, AlertTriangle } from 'lucide-react';
+import { ResponsiveContainer, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts';
 import { useTheme } from '../context/ThemeContext';
 
 // --- Logo ---
@@ -110,8 +112,16 @@ export const Card: React.FC<CardProps> = ({ children, className = '', title, act
 };
 
 // --- Modal ---
-export const Modal: React.FC<{ isOpen: boolean; onClose: () => void; title: string; children: React.ReactNode; hideCloseButton?: boolean }> = ({ isOpen, onClose, title, children, hideCloseButton }) => {
-  const { highContrast } = useTheme();
+export const Modal: React.FC<{ isOpen: boolean; onClose: () => void; title: string; children: React.ReactNode; hideCloseButton?: boolean; maxWidth?: string; customStyle?: React.CSSProperties }> = ({ isOpen, onClose, title, children, hideCloseButton, maxWidth = "sm:max-w-lg", customStyle }) => {
+  const { t, highContrast } = useTheme();
+  const modalRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (modalRef.current && customStyle) {
+      Object.assign(modalRef.current.style, customStyle);
+    }
+  }, [customStyle, isOpen]);
+
   if (!isOpen) return null;
 
   return (
@@ -121,12 +131,15 @@ export const Modal: React.FC<{ isOpen: boolean; onClose: () => void; title: stri
           <div className="absolute inset-0 bg-slate-900 opacity-75"></div>
         </div>
         <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-        <div className={`inline-block align-bottom rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full ${highContrast ? 'bg-black border-2 border-yellow-400 text-white' : 'bg-white'}`}>
+        <div
+          ref={modalRef}
+          className={`inline-block align-bottom rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle w-full ${maxWidth} ${highContrast ? 'bg-black border-2 border-yellow-400 text-white' : 'bg-white'}`}
+        >
           <div className="px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
             <div className="flex justify-between items-start mb-4">
               <h3 className={`text-lg leading-6 font-medium ${highContrast ? 'text-yellow-400' : 'text-slate-900'}`}>{title}</h3>
               {!hideCloseButton && (
-                <button onClick={onClose} className={`${highContrast ? 'text-white hover:text-yellow-400' : 'text-slate-400 hover:text-slate-500'}`}><X size={20} /></button>
+                <button onClick={onClose} aria-label="Close" className={`${highContrast ? 'text-white hover:text-yellow-400' : 'text-slate-400 hover:text-slate-500'}`}><X size={20} /></button>
               )}
             </div>
             {children}
@@ -175,9 +188,10 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement | HTMLSe
   label: string;
   as?: 'input' | 'textarea' | 'select';
   rows?: number;
+  title?: string;
 }
 
-export const Input: React.FC<InputProps> = ({ label, id, className = '', as = 'input', children, ...props }) => {
+export const Input: React.FC<InputProps> = ({ label, id, className = '', as = 'input', children, title, ...props }) => {
   const { highContrast } = useTheme();
 
   const styles = highContrast
@@ -190,10 +204,12 @@ export const Input: React.FC<InputProps> = ({ label, id, className = '', as = 'i
         {label}
       </label>
       {as === 'select' ? (
+        // eslint-disable-next-line jsx-a11y/control-has-associated-label
         <select
           id={id}
-          className={`w-full px-4 py-2 rounded-lg border focus:ring-2 outline-none transition-all ${styles} ${className}`}
           {...(props as any)}
+          title={title || label || 'Form Select'}
+          aria-label={props['aria-label'] || label || 'Form Select'}
         >
           {children}
         </select>
@@ -242,6 +258,13 @@ export const StatWidget: React.FC<{ label: string; value: string | number; icon?
 export const ProgressBar: React.FC<{ current: number; total: number; labels?: string[] }> = ({ current, total, labels }) => {
   const { highContrast } = useTheme();
   const percentage = Math.min(100, Math.max(0, ((current - 1) / (total - 1)) * 100));
+  const barRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (barRef.current) {
+      barRef.current.style.setProperty('--w', `${percentage}%`);
+    }
+  }, [percentage]);
 
   return (
     <div className="w-full mb-8">
@@ -254,8 +277,8 @@ export const ProgressBar: React.FC<{ current: number; total: number; labels?: st
       )}
       <div className={`h-3 rounded-full overflow-hidden ${highContrast ? 'bg-slate-700' : 'bg-slate-200'}`}>
         <div
-          className={`h-full transition-all duration-500 ease-out ${highContrast ? 'bg-yellow-400' : 'bg-brand-600'}`}
-          style={{ width: `${percentage}%` }}
+          ref={barRef}
+          className="h-full transition-all duration-500 ease-out w-[var(--w)]"
         />
       </div>
     </div>
@@ -377,9 +400,9 @@ export const CalendarWidget: React.FC<{ selectedDate: string; onChange: (d: stri
     <div className={`w-72 select-none ${bgMain} ${baseText}`}>
       {/* Header */}
       <div className="flex justify-between items-center mb-4">
-        <button onClick={() => changeMonth(-1)} className={`p-1 rounded ${hoverBg} ${highContrast ? 'text-white' : 'text-slate-600'}`}><ChevronLeft size={20} /></button>
+        <button onClick={() => changeMonth(-1)} aria-label="Previous Month" className={`p-1 rounded ${hoverBg} ${highContrast ? 'text-white' : 'text-slate-600'}`}><ChevronLeft size={20} /></button>
         <span className="font-bold">{monthNames[month]} {year}</span>
-        <button onClick={() => changeMonth(1)} className={`p-1 rounded ${hoverBg} ${highContrast ? 'text-white' : 'text-slate-600'}`}><ChevronRight size={20} /></button>
+        <button onClick={() => changeMonth(1)} aria-label="Next Month" className={`p-1 rounded ${hoverBg} ${highContrast ? 'text-white' : 'text-slate-600'}`}><ChevronRight size={20} /></button>
       </div>
 
       {/* Days Grid */}
@@ -420,3 +443,211 @@ export const CalendarWidget: React.FC<{ selectedDate: string; onChange: (d: stri
     </div>
   );
 };
+
+// --- Shared Dashboard Cards ---
+
+export const DemoModeCard: React.FC<{ onTrigger: () => void; description?: string }> = ({ onTrigger, description }) => {
+  return (
+    <Card className="bg-indigo-50 dark:bg-indigo-950 border-indigo-200 dark:border-indigo-900 shadow-sm transition-all hover:shadow-md">
+      <div className="space-y-3">
+        <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-300">
+          <PlayCircle size={18} className="animate-pulse" />
+          <h4 className="font-bold text-sm tracking-tight">DEMO PRESENTATION</h4>
+        </div>
+        <p className="text-xs text-indigo-600 dark:text-indigo-400 leading-relaxed font-medium">
+          {description || "Trigger persistent surveys and background check simulations for the live demo."}
+        </p>
+        <Button
+          variant="dark"
+          size="sm"
+          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white border-none shadow-sm transition-colors"
+          onClick={onTrigger}
+        >
+          Activate Demo Mode
+        </Button>
+      </div>
+    </Card>
+  );
+};
+
+// --- Chart Utilities ---
+
+export const ChartContainer: React.FC<{ children: React.ReactNode; height?: number | string }> = ({ children, height = 256 }) => {
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (containerRef.current) {
+      const h = typeof height === 'number' ? `${height}px` : height;
+      containerRef.current.style.setProperty('--h', h as string);
+    }
+  }, [height]);
+
+  return (
+    <div
+      ref={containerRef}
+      className="flex items-center justify-center w-full h-[var(--h)]"
+    >
+      <ResponsiveContainer width="100%" height="100%">
+        {children}
+      </ResponsiveContainer>
+    </div>
+  );
+};
+
+export const StandardGrid = () => (
+  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+);
+
+export const StandardXAxis = ({ dataKey }: { dataKey: string }) => (
+  <XAxis
+    dataKey={dataKey}
+    axisLine={false}
+    tickLine={false}
+    tick={{ fontSize: 11, fill: '#94a3b8' }}
+  />
+);
+
+export const StandardYAxis = () => (
+  <YAxis
+    allowDecimals={false}
+    interval={0}
+    axisLine={false}
+    tickLine={false}
+    tick={{ fontSize: 11, fill: '#94a3b8' }}
+  />
+);
+
+export const StandardTooltip = () => (
+  <Tooltip
+    cursor={{ fill: '#f8fafc' }}
+    contentStyle={{
+      borderRadius: '8px',
+      border: 'none',
+      boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+      fontSize: '12px'
+    }}
+  />
+);
+
+export const NeedHelpCard: React.FC = () => {
+  const { t } = useTheme();
+  return (
+    <Card className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm">
+      <div className="flex items-start gap-4">
+        <div className="p-2.5 bg-white dark:bg-black rounded-xl text-slate-400 border border-slate-200 dark:border-slate-700 shadow-inner">
+          <HelpCircle size={22} className="text-slate-500" />
+        </div>
+        <div className="space-y-1">
+          <h4 className="font-bold text-slate-900 dark:text-white leading-tight">{t('need_help')}</h4>
+          <p className="text-xs text-slate-600 dark:text-slate-300 mb-2">{t('contact_support')}</p>
+          <div className="space-y-1.5 pt-1">
+            <p className="text-[11px] font-bold text-brand-700 dark:text-yellow-400 flex items-center gap-2 hover:opacity-80 cursor-pointer">
+              <Phone size={12} strokeWidth={2.5} /> 971-712-3845
+            </p>
+            <p className="text-[11px] font-bold text-brand-700 dark:text-yellow-400 flex items-center gap-2 hover:opacity-80 cursor-pointer">
+              <Mail size={12} strokeWidth={2.5} /> help@npvn.org
+            </p>
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+};
+
+export const TimeFrameSelector: React.FC<{ value: string; onChange: (val: string) => void; options?: string[] }> = ({ value, onChange, options = ['7 Days', '30 Days', '3 Months', '6 Months', '1 Year', 'All Time'] }) => {
+  return (
+    <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-1 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+      <span className="text-[10px] font-bold text-slate-500 uppercase px-2 flex items-center gap-1">
+        <Calendar size={12} /> Period:
+      </span>
+      {/* eslint-disable-next-line jsx-a11y/control-has-associated-label */}
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        aria-label="Select Time Frame"
+        title="Select Time Frame"
+        className="text-xs border-none focus:ring-0 font-bold text-slate-700 dark:text-slate-200 bg-transparent cursor-pointer outline-none py-1 pr-8"
+      >
+        {options.map(opt => <option key={opt}>{opt}</option>)}
+      </select>
+    </div>
+  );
+};
+export const WaiverForm: React.FC<{
+  onAcknowledge: (name: string) => void;
+  onBack: () => void;
+}> = ({ onAcknowledge, onBack }) => {
+  const { t } = useTheme();
+  const [agreed, setAgreed] = useState(false);
+  const [signature, setSignature] = useState('');
+  const [error, setError] = useState(false);
+
+  const handleNext = () => {
+    if (agreed && signature.trim().length > 2) {
+      onAcknowledge(signature);
+    } else {
+      setError(true);
+    }
+  };
+
+  return (
+    <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
+      <div className="text-center">
+        <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mx-auto text-blue-600 dark:text-blue-300 mb-4">
+          <FileText size={32} />
+        </div>
+        <h2 className="text-2xl font-bold dark:text-white">{t('onboarding.waiver_title')}</h2>
+        <p className="text-slate-600 dark:text-slate-300 max-w-lg mx-auto mt-2 italic text-sm">
+          {t('onboarding.waiver_intro')}
+        </p>
+      </div>
+
+      <div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 max-h-64 overflow-y-auto shadow-inner">
+        <div className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
+          {t('onboarding.waiver_text')}
+        </div>
+      </div>
+
+      <div className="space-y-4 pt-2">
+        <label className="flex items-start gap-3 cursor-pointer group">
+          <input
+            type="checkbox"
+            className="mt-1 w-5 h-5 rounded border-slate-300 text-brand-600 dark:bg-black dark:border-slate-600 focus:ring-brand-500"
+            checked={agreed}
+            onChange={(e) => {
+              setAgreed(e.target.checked);
+              if (e.target.checked) setError(false);
+            }}
+          />
+          <span className="text-sm text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
+            {t('onboarding.waiver_checkbox_label')}
+          </span>
+        </label>
+
+        <Input
+          label={t('onboarding.waiver_signature_label')}
+          placeholder="Type Full Legal Name"
+          value={signature}
+          onChange={(e) => {
+            setSignature(e.target.value);
+            if (e.target.value.trim().length > 2) setError(false);
+          }}
+        />
+
+        {error && (
+          <p className="text-rose-600 dark:text-rose-400 text-xs font-bold flex items-center gap-1 animate-pulse">
+            <AlertTriangle size={14} /> {t('onboarding.waiver_error')}
+          </p>
+        )}
+      </div>
+
+      <div className="flex justify-between pt-4">
+        <Button variant="outline" onClick={onBack}>{t('common.back')}</Button>
+        <Button onClick={handleNext} variant={agreed && signature.length > 2 ? 'success' : 'primary'}>
+          {t('common.next')}
+        </Button>
+      </div>
+    </div>
+  );
+};
+

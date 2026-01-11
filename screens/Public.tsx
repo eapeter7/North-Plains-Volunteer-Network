@@ -55,121 +55,110 @@ export const PublicHome: React.FC<{ onNavigate: (p: string) => void }> = ({ onNa
 };
 
 export const AboutPage: React.FC<{ openContact?: boolean }> = ({ openContact }) => {
+  const { t } = useTheme();
   return (
     <div className="max-w-4xl mx-auto py-10 space-y-12">
       <div className="text-center space-y-4">
-        <h1 className="text-4xl font-bold text-brand-700">About NPVN</h1>
-        <p className="text-xl text-slate-600">Neighbors Helping Neighbors. Stronger Together.</p>
+        <h1 className="text-4xl font-bold text-brand-700">{t('about.title')}</h1>
+        <p className="text-xl text-slate-600">{t('about.subtitle')}</p>
       </div>
 
       <Card>
         <div className="space-y-1">
-          <Accordion title="Our Mission" defaultOpen={!openContact} icon={<Target size={20} />}>
-            <p className="mb-4">
-              The North Plains Volunteer Network exists to connect neighbors who want to help with neighbors who need support. Our mission is to build a compassionate, safe, and reliable system of volunteer-powered services that strengthens independence, reduces isolation, and increases wellbeing for everyone in our community.
-            </p>
-            <p>
-              NPVN operates under the North Plains Senior Center (NPSC), aligning closely with its vision of supporting older adults, individuals with disabilities, and families through meaningful engagement, social connection, and practical assistance.
-            </p>
+          <Accordion title={t('about.mission_title')} defaultOpen={!openContact} icon={<Target size={20} />}>
+            <p className="mb-4">{t('about.mission_text_1')}</p>
+            <p>{t('about.mission_text_2')}</p>
           </Accordion>
 
-          <Accordion title="What We Do" icon={<HandHeart size={20} />}>
-            <p className="mb-4">
-              NPVN provides free, volunteer-driven support to residents of North Plains. Our volunteers offer simple, everyday help that makes a big difference:
-            </p>
+          <Accordion title={t('about.what_we_do_title')} icon={<HandHeart size={20} />}>
+            <p className="mb-4">{t('about.what_we_do_intro')}</p>
             <ul className="list-disc pl-6 space-y-2 mb-4">
-              <li>Rides to appointments, church, or errands</li>
-              <li>Grocery pickup</li>
-              <li>Friendly visits and social connection</li>
-              <li>Walk-and-talk companionship</li>
-              <li>Light home help (non-technical, non-invasive)</li>
-              <li>Seasonal yard tidying</li>
-              <li>Help with small tasks like battery changes or lifting items</li>
-              <li>Holiday decoration setup/takedown</li>
-              <li>Group volunteer events around town</li>
+              <li>{t('about.service_rides')}</li>
+              <li>{t('about.service_grocery')}</li>
+              <li>{t('about.service_visits')}</li>
+              <li>{t('about.service_walk')}</li>
+              <li>{t('about.service_home_help')}</li>
+              <li>{t('about.service_yard')}</li>
+              <li>{t('about.service_small_tasks')}</li>
+              <li>{t('about.service_holiday')}</li>
+              <li>{t('about.service_group_events')}</li>
             </ul>
-            <p>We focus on practical tasks, connection, and neighborly support—not medical or professional services.</p>
+            <p>{t('about.what_we_do_footer')}</p>
           </Accordion>
 
-          <Accordion title="Why It Matters" icon={<Heart size={20} />}>
-            <p className="mb-4">
-              North Plains is growing, but our sense of community is what defines us. Many residents, especially older adults, people with disabilities, and those living alone, need small acts of help that keep them:
-            </p>
+          <Accordion title={t('about.why_matters_title')} icon={<Heart size={20} />}>
+            <p className="mb-4">{t('about.why_matters_intro')}</p>
             <ul className="list-disc pl-6 space-y-2 mb-4 font-medium text-slate-700">
-              <li>Safe</li>
-              <li>Connected</li>
-              <li>Independent</li>
-              <li>Engaged with their community</li>
+              <li>{t('about.why_safe')}</li>
+              <li>{t('about.why_connected')}</li>
+              <li>{t('about.why_independent')}</li>
+              <li>{t('about.why_engaged')}</li>
             </ul>
-            <p>
-              At the same time, many neighbors want to give back but don’t know where to start. NPVN creates a simple, safe, trusted system that makes it easy for both sides.
-            </p>
+            <p>{t('about.why_matters_footer')}</p>
           </Accordion>
 
-          <Accordion title="How It Works" icon={<Info size={20} />}>
+          <Accordion title={t('about.how_works_title')} icon={<Info size={20} />}>
             <div className="space-y-4">
               <div>
-                <h4 className="font-bold text-slate-900">Step 1: Join the Network</h4>
-                <p>Clients and volunteers create an account. Volunteers complete profile, training, and background check.</p>
+                <h4 className="font-bold text-slate-900">{t('about.step_1_title')}</h4>
+                <p>{t('about.step_1_text')}</p>
               </div>
               <div>
-                <h4 className="font-bold text-slate-900">Step 2: Make or Accept a Request</h4>
-                <p>Clients submit a request. Volunteers browse and sign up for opportunities.</p>
+                <h4 className="font-bold text-slate-900">{t('about.step_2_title')}</h4>
+                <p>{t('about.step_2_text')}</p>
               </div>
               <div>
-                <h4 className="font-bold text-slate-900">Step 3: Get Matched</h4>
-                <p>The platform connects you. Both receive reminders.</p>
+                <h4 className="font-bold text-slate-900">{t('about.step_3_title')}</h4>
+                <p>{t('about.step_3_text')}</p>
               </div>
               <div>
-                <h4 className="font-bold text-slate-900">Step 4: Connect & Support</h4>
-                <p>Volunteers complete the visit. Clients confirm completion.</p>
+                <h4 className="font-bold text-slate-900">{t('about.step_4_title')}</h4>
+                <p>{t('about.step_4_text')}</p>
               </div>
             </div>
           </Accordion>
 
-          <Accordion title="Safety & Commitment" icon={<ShieldCheck size={20} />}>
-            <p className="mb-4">Safety is at the heart of NPVN. We use:</p>
+          <Accordion title={t('about.safety_title')} icon={<ShieldCheck size={20} />}>
+            <p className="mb-4">{t('about.safety_intro')}</p>
             <ul className="list-disc pl-6 space-y-2">
-              <li>Background checks for all volunteers</li>
-              <li>Required training modules</li>
-              <li>Clear boundaries and prohibited tasks</li>
-              <li>Incident reporting pathways</li>
-              <li>Automated communication logs</li>
-              <li>Coordinator oversight for complex situations</li>
+              <li>{t('about.safety_checks')}</li>
+              <li>{t('about.safety_training')}</li>
+              <li>{t('about.safety_boundaries')}</li>
+              <li>{t('about.safety_reporting')}</li>
+              <li>{t('about.safety_logs')}</li>
+              <li>{t('about.safety_oversight')}</li>
             </ul>
           </Accordion>
 
-          <Accordion title="Who We Serve" icon={<Users size={20} />}>
-            <p className="mb-4">
-              NPVN is designed for all North Plains residents who need simple, non-medical support, especially:
-            </p>
+          <Accordion title={t('about.who_serve_title')} icon={<Users size={20} />}>
+            <p className="mb-4">{t('about.who_serve_intro')}</p>
             <ul className="list-disc pl-6 space-y-1">
-              <li>Older adults</li>
-              <li>Individuals living with disabilities</li>
-              <li>People recovering from illness or injury</li>
-              <li>Isolated neighbors seeking social connection</li>
+              <li>{t('about.serve_older')}</li>
+              <li>{t('about.serve_disability')}</li>
+              <li>{t('about.serve_recovery')}</li>
+              <li>{t('about.serve_isolated')}</li>
             </ul>
-            <p className="mt-4 italic">There is no income requirement and no cost for services.</p>
+            <p className="mt-4 italic">{t('about.serve_footer')}</p>
           </Accordion>
 
-          <Accordion title="Contact Us" defaultOpen={openContact} id="contact-us-section" icon={<Phone size={20} />}>
+          <Accordion title={t('about.contact_title')} defaultOpen={openContact} id="contact-us-section" icon={<Phone size={20} />}>
             <div className="space-y-6">
               <div className="bg-brand-50 p-6 rounded-lg border border-brand-100">
-                <h4 className="font-bold text-brand-900 text-lg mb-3">North Plains Volunteer Network</h4>
+                <h4 className="font-bold text-brand-900 text-lg mb-3">{t('about.npvn_name')}</h4>
                 <div className="text-slate-700 space-y-2">
-                  <p className="flex items-center gap-2"><strong>Email:</strong> npvolunteernetwork@gmail.com</p>
-                  <p className="flex items-center gap-2"><strong>Phone:</strong> 971-712-3845</p>
+                  <p className="flex items-center gap-2"><strong>{t('about.email_label')}</strong> npvolunteernetwork@gmail.com</p>
+                  <p className="flex items-center gap-2"><strong>{t('about.phone_label')}</strong> 971-712-3845</p>
                 </div>
               </div>
 
               <div className="bg-slate-50 p-6 rounded-lg border border-slate-200">
-                <h4 className="font-bold text-slate-900 text-lg mb-3">North Plains Senior Center</h4>
+                <h4 className="font-bold text-slate-900 text-lg mb-3">{t('about.npsc_name')}</h4>
                 <div className="text-slate-700 space-y-2">
                   <p>31450 NW Commercial St</p>
                   <p>North Plains, OR 97133</p>
                   <div className="mt-4 pt-4 border-t border-slate-200">
-                    <p className="flex items-center gap-2"><strong>Email:</strong> northplainssc@gmail.com</p>
-                    <p className="flex items-center gap-2"><strong>Phone:</strong> (503) 647-5666</p>
+                    <p className="flex items-center gap-2"><strong>{t('about.email_label')}</strong> northplainssc@gmail.com</p>
+                    <p className="flex items-center gap-2"><strong>{t('about.phone_label')}</strong> (503) 647-5666</p>
                   </div>
                 </div>
               </div>
@@ -182,13 +171,14 @@ export const AboutPage: React.FC<{ openContact?: boolean }> = ({ openContact }) 
 };
 
 export const DonatePage: React.FC = () => {
+  const { t } = useTheme();
   const PAYPAL_LINK = 'https://www.paypal.com/ncp/payment/NYUF3RCCR3ZQS';
 
   return (
     <div className="max-w-2xl mx-auto py-10 space-y-8">
       <div className="text-center space-y-4">
-        <h1 className="text-4xl font-bold text-brand-700">Support Our Mission</h1>
-        <p className="text-xl text-slate-600">Your contribution helps us keep neighbors connected.</p>
+        <h1 className="text-4xl font-bold text-brand-700">{t('donate.title')}</h1>
+        <p className="text-xl text-slate-600">{t('donate.subtitle')}</p>
       </div>
 
       <Card>
@@ -197,8 +187,7 @@ export const DonatePage: React.FC = () => {
             <Heart size={40} />
           </div>
           <p className="text-slate-600 px-4">
-            The North Plains Volunteer Network operates under the North Plains Senior Center, a 501(c)(3) non-profit organization.
-            All donations are tax-deductible and go directly towards background checks, volunteer training, and program coordination.
+            {t('donate.p1')}
           </p>
 
           {/* Donation Buttons */}
@@ -207,7 +196,7 @@ export const DonatePage: React.FC = () => {
               <Button variant="outline" onClick={() => window.open(PAYPAL_LINK, '_blank')}>$25</Button>
               <Button variant="outline" onClick={() => window.open(PAYPAL_LINK, '_blank')}>$50</Button>
               <Button variant="outline" onClick={() => window.open(PAYPAL_LINK, '_blank')}>$100</Button>
-              <Button variant="outline" onClick={() => window.open(PAYPAL_LINK, '_blank')}>Other</Button>
+              <Button variant="outline" onClick={() => window.open(PAYPAL_LINK, '_blank')}>{t('common.other')}</Button>
             </div>
 
             <Button
@@ -215,14 +204,14 @@ export const DonatePage: React.FC = () => {
               className="w-full max-w-sm font-bold shadow-md hover:shadow-lg transition-all"
               onClick={() => window.open(PAYPAL_LINK, '_blank')}
             >
-              Donate via PayPal
+              {t('donate.paypal_btn')}
             </Button>
           </div>
 
           {/* QR Code Section */}
           <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 max-w-sm mx-auto mt-6">
             <h3 className="font-bold text-slate-800 mb-4 flex items-center justify-center gap-2">
-              <QrCode size={18} /> Scan to Donate
+              <QrCode size={18} /> {t('donate.scan_title')}
             </h3>
             <div className="bg-white p-2 rounded-lg border border-slate-200 inline-block shadow-sm">
               <img
@@ -234,15 +223,15 @@ export const DonatePage: React.FC = () => {
                 }}
               />
             </div>
-            <p className="text-xs text-slate-500 mt-3">Scan this code with your phone camera</p>
+            <p className="text-xs text-slate-500 mt-3">{t('donate.scan_desc')}</p>
           </div>
 
           <div className="pt-6 border-t mt-6">
-            <p className="font-bold text-slate-800">Prefer to donate by check?</p>
+            <p className="font-bold text-slate-800">{t('donate.check_title')}</p>
             <p className="text-sm text-slate-500 mt-2 leading-relaxed">
-              Make checks payable to:<br />
+              {t('donate.check_text')}<br />
               <span className="font-medium text-slate-700">North Plains Senior Center</span><br />
-              Memo: Volunteer Network<br />
+              {t('donate.check_memo')}<br />
               31450 NW Commercial St<br />
               North Plains, OR 97133
             </p>
@@ -254,39 +243,40 @@ export const DonatePage: React.FC = () => {
 };
 
 export const LoginScreen: React.FC<{ onLogin: (r: UserRole) => void; onNavigate: (p: string) => void }> = ({ onLogin, onNavigate }) => {
+  const { t } = useTheme();
   return (
     <div className="max-w-md mx-auto py-10">
-      <Card title="Sign In to NPVN">
+      <Card title={t('signin_title')}>
         <div className="space-y-6">
           <p className="text-sm text-slate-600 mb-4">
-            Welcome back! Please log in to access your dashboard.
+            {t('welcome_back')}
           </p>
           {/* MOCK LOGIN CONTROLS */}
           <div className="bg-amber-50 p-4 rounded text-xs text-amber-800 border border-amber-200 mb-4">
-            <strong>Demo Mode:</strong> Select a role to simulate login.
+            <strong>{t('demo_mode')}</strong> {t('demo_instruction')}
             <div className="grid gap-2 mt-2">
-              <button onClick={() => onLogin(UserRole.CLIENT)} className="underline text-left">Log in as Client (Martha)</button>
-              <button onClick={() => onLogin(UserRole.VOLUNTEER)} className="underline text-left">Log in as Volunteer (John)</button>
-              <button onClick={() => onLogin(UserRole.ADMIN)} className="underline text-left">Log in as Admin (Sarah)</button>
-              <button onClick={() => onLogin(UserRole.CLIENT_VOLUNTEER)} className="underline text-left">Log in as Dual User (Client & Volunteer)</button>
+              <button onClick={() => onLogin(UserRole.CLIENT)} className="underline text-left">{t('login_client')}</button>
+              <button onClick={() => onLogin(UserRole.VOLUNTEER)} className="underline text-left">{t('login_volunteer')}</button>
+              <button onClick={() => onLogin(UserRole.ADMIN)} className="underline text-left">{t('login_admin')}</button>
+              <button onClick={() => onLogin(UserRole.CLIENT_VOLUNTEER)} className="underline text-left">{t('login_dual')}</button>
             </div>
           </div>
 
-          <Input label="Email Address" type="email" placeholder="name@example.com" />
-          <Input label="Password" type="password" />
-          <Button className="w-full">Sign In</Button>
+          <Input label={t('email_label')} type="email" placeholder={t('email_placeholder')} />
+          <Input label={t('password_label')} type="password" />
+          <Button className="w-full">{t('signin_btn')}</Button>
 
           <div className="relative py-2">
             <div className="absolute inset-0 flex items-center">
               <span className="w-full border-t border-slate-200" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-2 text-slate-500">New to NPVN?</span>
+              <span className="bg-white px-2 text-slate-500">{t('new_to_npvn')}</span>
             </div>
           </div>
 
           <Button variant="outline" className="w-full" onClick={() => onNavigate('register')}>
-            Create a New Account
+            {t('create_account')}
           </Button>
         </div>
       </Card>
@@ -295,6 +285,7 @@ export const LoginScreen: React.FC<{ onLogin: (r: UserRole) => void; onNavigate:
 };
 
 export const RegisterScreen: React.FC<{ onRegister: (role: UserRole, data: any) => void }> = ({ onRegister }) => {
+  const { t } = useTheme();
   const [step, setStep] = useState(1);
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [form, setForm] = useState({ name: '', email: '', password: '' });
@@ -308,8 +299,8 @@ export const RegisterScreen: React.FC<{ onRegister: (role: UserRole, data: any) 
     <div className="max-w-3xl mx-auto py-10">
       {step === 1 && (
         <div className="space-y-8 text-center">
-          <h1 className="text-3xl font-bold text-slate-900">Join the Network</h1>
-          <p className="text-slate-600 text-lg">How would you like to participate?</p>
+          <h1 className="text-3xl font-bold text-slate-900">{t('register.join_title')}</h1>
+          <p className="text-slate-600 text-lg">{t('register.join_subtitle')}</p>
 
           <div className="grid md:grid-cols-3 gap-6">
             <div
@@ -319,8 +310,8 @@ export const RegisterScreen: React.FC<{ onRegister: (role: UserRole, data: any) 
               <div className="p-4 bg-brand-50 rounded-full text-brand-600 mb-4">
                 <Users size={32} />
               </div>
-              <h3 className="font-bold text-lg mb-2">I need assistance</h3>
-              <p className="text-sm text-slate-500">Sign up as a Client to request rides, visits, and support.</p>
+              <h3 className="font-bold text-lg mb-2">{t('register.client_title')}</h3>
+              <p className="text-sm text-slate-500">{t('register.client_desc')}</p>
             </div>
 
             <div
@@ -330,8 +321,8 @@ export const RegisterScreen: React.FC<{ onRegister: (role: UserRole, data: any) 
               <div className="p-4 bg-nature-50 rounded-full text-nature-500 mb-4">
                 <Heart size={32} />
               </div>
-              <h3 className="font-bold text-lg mb-2">I want to help</h3>
-              <p className="text-sm text-slate-500">Sign up as a Volunteer to browse and accept opportunities.</p>
+              <h3 className="font-bold text-lg mb-2">{t('register.volunteer_title')}</h3>
+              <p className="text-sm text-slate-500">{t('register.volunteer_desc')}</p>
             </div>
 
             <div
@@ -341,8 +332,8 @@ export const RegisterScreen: React.FC<{ onRegister: (role: UserRole, data: any) 
               <div className="p-4 bg-purple-50 rounded-full text-purple-600 mb-4">
                 <UserPlus size={32} />
               </div>
-              <h3 className="font-bold text-lg mb-2">I want to do both</h3>
-              <p className="text-sm text-slate-500">Sign up to both receive help and offer support to neighbors.</p>
+              <h3 className="font-bold text-lg mb-2">{t('register.dual_title')}</h3>
+              <p className="text-sm text-slate-500">{t('register.dual_desc')}</p>
             </div>
           </div>
         </div>
@@ -350,14 +341,17 @@ export const RegisterScreen: React.FC<{ onRegister: (role: UserRole, data: any) 
 
       {step === 2 && selectedRole && (
         <div className="max-w-md mx-auto">
-          <Card title={`Create ${selectedRole === UserRole.CLIENT_VOLUNTEER ? 'Dual' : selectedRole === UserRole.CLIENT ? 'Client' : 'Volunteer'} Account`}>
+          <Card title={
+            selectedRole === UserRole.CLIENT_VOLUNTEER ? t('register.create_dual') :
+              selectedRole === UserRole.CLIENT ? t('register.create_client') : t('register.create_volunteer')
+          }>
             <div className="space-y-4">
-              <Input label="Full Name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Jane Doe" />
-              <Input label="Email Address" type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="jane@example.com" />
-              <Input label="Create Password" type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} />
+              <Input label={t('register.full_name')} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Jane Doe" />
+              <Input label={t('email_label')} type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="jane@example.com" />
+              <Input label={t('register.create_password')} type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} />
               <div className="pt-4">
-                <Button className="w-full" onClick={() => onRegister(selectedRole, form)}>Create Account</Button>
-                <button onClick={() => setStep(1)} className="w-full mt-4 text-sm text-slate-500 hover:text-slate-800">Back to Role Selection</button>
+                <Button className="w-full" onClick={() => onRegister(selectedRole, form)}>{t('register.create_account_btn')}</Button>
+                <button onClick={() => setStep(1)} className="w-full mt-4 text-sm text-slate-500 hover:text-slate-800">{t('register.back_role')}</button>
               </div>
             </div>
           </Card>

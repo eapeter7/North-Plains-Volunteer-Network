@@ -93,6 +93,7 @@ export const MOCK_REQUESTS: Request[] = [
     id: 'r1',
     clientId: 'c1',
     clientName: 'Martha Stewart',
+    clientLanguage: 'English',
     category: RequestCategory.RIDE,
     subcategory: 'Medical Appointment',
     description: 'Ride to Providence Medical Center for checkup.',
@@ -101,6 +102,26 @@ export const MOCK_REQUESTS: Request[] = [
     appointmentTime: '10:30 AM',
     pickupTime: '10:00 AM',
     location: 'Providence, Hillsboro',
+    geozone: 'North Plains - Central',
+    status: RequestStatus.PENDING,
+    isRecurring: false
+  },
+  {
+    id: 'r1b',
+    clientId: 'c1',
+    clientName: 'Martha Stewart',
+    clientLanguage: 'English',
+    category: RequestCategory.RIDE,
+    subcategory: 'Medical Appointment',
+    description: 'Round-trip transportation to physical therapy appointment at Tuality Health Center, 335 SE 8th Ave, Hillsboro, OR 97123. Pick up client at 1:30 PM, appointment at 2:00 PM, return client home at 3:00 PM.',
+    date: new Date(Date.now() + 172800000).toISOString().split('T')[0], // +2 days
+    timeWindow: 'Pick up at 1:30 PM, Return at 3:00 PM',
+    appointmentTime: '2:00 PM',
+    pickupTime: '1:30 PM',
+    returnTime: '3:00 PM',
+    location: '123 Main St, North Plains, OR 97133',
+    pickupAddress: '123 Main St, North Plains, OR 97133',
+    destinationAddress: 'Tuality Health Center, 335 SE 8th Ave, Hillsboro, OR 97123',
     geozone: 'North Plains - Central',
     status: RequestStatus.PENDING,
     isRecurring: false
@@ -184,29 +205,29 @@ export const MOCK_COMM_LOGS = [
 
 export const BADGES = [
   // Milestones
-  { id: 'FIRST_STEPS', label: 'First Steps', icon: '👣', color: 'bg-cyan-400', description: 'Completed your first volunteer assignment!' },
-  { id: '5_HOURS', label: 'Helping Hand', icon: '🥉', color: 'bg-amber-600', description: 'Served 5 hours of community time.' },
-  { id: '10_HOURS', label: 'Neighbor Champion', icon: '🥈', color: 'bg-slate-400', description: 'Reached 10 hours of dedicated service!' },
-  { id: '25_HOURS', label: 'Community Supporter', icon: '🏅', color: 'bg-blue-400', description: '25 hours of impact.' },
-  { id: '50_HOURS', label: 'Service Leader', icon: '🥇', color: 'bg-yellow-500', description: '50 hours of leadership and service.' },
-  { id: '75_HOURS', label: 'Impact Maker', icon: '🌟', color: 'bg-purple-500', description: '75 hours of making a difference.' },
-  { id: '100_HOURS', label: '100-Hour Milestone', icon: '💯', color: 'bg-emerald-500', description: 'Reached the centennial mark!' },
-  { id: '250_HOURS', label: '250-Hour Milestone', icon: '🏆', color: 'bg-rose-500', description: 'Outstanding dedication.' },
-  { id: 'VETERAN_VOLUNTEER', label: 'Veteran Volunteer', icon: '🎖️', color: 'bg-purple-700', description: '1 year of active service to the community.' },
+  { id: 'FIRST_STEPS', labelKey: 'badge.first_steps', icon: '👣', color: 'bg-cyan-400', descriptionKey: 'badge.first_steps_desc' },
+  { id: '5_HOURS', labelKey: 'badge.helping_hand', icon: '🥉', color: 'bg-amber-600', descriptionKey: 'badge.helping_hand_desc' },
+  { id: '10_HOURS', labelKey: 'badge.neighbor_champion', icon: '🥈', color: 'bg-slate-400', descriptionKey: 'badge.neighbor_champion_desc' },
+  { id: '25_HOURS', labelKey: 'badge.community_supporter', icon: '🏅', color: 'bg-blue-400', descriptionKey: 'badge.community_supporter_desc' },
+  { id: '50_HOURS', labelKey: 'badge.service_leader', icon: '🥇', color: 'bg-yellow-500', descriptionKey: 'badge.service_leader_desc' },
+  { id: '75_HOURS', labelKey: 'badge.impact_maker', icon: '🌟', color: 'bg-purple-500', descriptionKey: 'badge.impact_maker_desc' },
+  { id: '100_HOURS', labelKey: 'badge.100_hour_milestone', icon: '💯', color: 'bg-emerald-500', descriptionKey: 'badge.100_hour_milestone_desc' },
+  { id: '250_HOURS', labelKey: 'badge.250_hour_milestone', icon: '🏆', color: 'bg-rose-500', descriptionKey: 'badge.250_hour_milestone_desc' },
+  { id: 'VETERAN_VOLUNTEER', labelKey: 'badge.veteran_volunteer', icon: '🎖️', color: 'bg-purple-700', descriptionKey: 'badge.veteran_volunteer_desc' },
 
   // Category Specific
-  { id: 'COMPANIONSHIP_STAR', label: 'Companionship Star', icon: '⭐', color: 'bg-pink-400', description: '10 companionship visits.' },
-  { id: 'ERRAND_EXPERT', label: 'Errand Expert', icon: '🛒', color: 'bg-green-500', description: '10 errands completed.' },
-  { id: 'RIDE_HERO', label: 'Ride Hero', icon: '🚗', color: 'bg-blue-500', description: '10 transportation requests completed.' },
-  { id: 'HOME_HELPER', label: 'Home Helper', icon: '🏠', color: 'bg-orange-500', description: '10 home support tasks completed.' },
-  { id: 'TECH_BUDDY', label: 'Technology Buddy', icon: '💻', color: 'bg-indigo-500', description: '5 tech-help requests completed.' },
+  { id: 'COMPANIONSHIP_STAR', labelKey: 'badge.companionship_star', icon: '⭐', color: 'bg-pink-400', descriptionKey: 'badge.companionship_star_desc' },
+  { id: 'ERRAND_EXPERT', labelKey: 'badge.errand_expert', icon: '🛒', color: 'bg-green-500', descriptionKey: 'badge.errand_expert_desc' },
+  { id: 'RIDE_HERO', labelKey: 'badge.ride_hero', icon: '🚗', color: 'bg-blue-500', descriptionKey: 'badge.ride_hero_desc' },
+  { id: 'HOME_HELPER', labelKey: 'badge.home_helper', icon: '🏠', color: 'bg-orange-500', descriptionKey: 'badge.home_helper_desc' },
+  { id: 'TECH_BUDDY', labelKey: 'badge.tech_buddy', icon: '💻', color: 'bg-indigo-500', descriptionKey: 'badge.tech_buddy_desc' },
 
   // Skills & Capabilities
-  { id: 'DRIVER', label: 'Certified Driver', icon: '🚙', color: 'bg-blue-600', description: 'Verified driver with valid license and insurance.' },
-  { id: 'SAFE_GUARD', label: 'Safe Guard', icon: '🛡️', color: 'bg-red-500', description: 'Completed TVF&R safety training.' },
-  { id: 'MULTILINGUAL', label: 'Multilingual', icon: '🌍', color: 'bg-teal-500', description: 'Speaks 2 or more languages fluently.' },
-  { id: 'TECH_HELPER', label: 'Tech Helper', icon: '⚙️', color: 'bg-slate-600', description: 'Assists seniors with technology and devices.' },
+  { id: 'DRIVER', labelKey: 'badge.certified_driver', icon: '🚙', color: 'bg-blue-600', descriptionKey: 'badge.certified_driver_desc' },
+  { id: 'SAFE_GUARD', labelKey: 'badge.safe_guard', icon: '🛡️', color: 'bg-red-500', descriptionKey: 'badge.safe_guard_desc' },
+  { id: 'MULTILINGUAL', labelKey: 'badge.multilingual', icon: '🌍', color: 'bg-teal-500', descriptionKey: 'badge.multilingual_desc' },
+  { id: 'TECH_HELPER', labelKey: 'badge.tech_helper', icon: '⚙️', color: 'bg-slate-600', descriptionKey: 'badge.tech_helper_desc' },
 
   // Platform
-  { id: 'PLATFORM_PRO', label: 'Platform Pro', icon: '📱', color: 'bg-slate-600', description: 'Completed NPVN platform training.' }
+  { id: 'PLATFORM_PRO', labelKey: 'badge.platform_pro', icon: '📱', color: 'bg-slate-600', descriptionKey: 'badge.platform_pro_desc' }
 ];

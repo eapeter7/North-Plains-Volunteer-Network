@@ -12,7 +12,7 @@ interface LayoutProps {
   onNavigate: (page: string) => void;
 }
 
-export const Layout: React.FC<LayoutProps> = ({ 
+export const Layout: React.FC<LayoutProps> = ({
   children, user, onLogout, currentPage, onNavigate
 }) => {
   const { textSize, setTextSize, highContrast, setHighContrast, language, setLanguage, t } = useTheme();
@@ -51,18 +51,18 @@ export const Layout: React.FC<LayoutProps> = ({
     }
 
     if (user.role === UserRole.CLIENT_VOLUNTEER) {
-       return [
-         ...loggedInCommon,
-         { id: 'create-request', label: t('nav.new_request'), icon: ClipboardList },
-         { id: 'opportunities', label: t('nav.opportunities'), icon: ClipboardList },
-         { id: 'history', label: t('nav.history'), icon: ClipboardList },
-       ];
+      return [
+        ...loggedInCommon,
+        { id: 'create-request', label: t('nav.new_request'), icon: ClipboardList },
+        { id: 'opportunities', label: t('nav.opportunities'), icon: ClipboardList },
+        { id: 'history', label: t('nav.history'), icon: ClipboardList },
+      ];
     }
 
     if (user.role === UserRole.ADMIN || user.role === UserRole.COORDINATOR) {
       return [
         ...loggedInCommon,
-        { id: 'requests', label: t('nav.requests'), icon: ClipboardList },
+        { id: 'my-assignments', label: 'My Assignments', icon: ClipboardList },
         { id: 'opportunities', label: t('nav.my_opps'), icon: Heart },
       ];
     }
@@ -87,92 +87,81 @@ export const Layout: React.FC<LayoutProps> = ({
             </div>
 
             {/* Desktop Nav */}
-            <nav className="hidden md:flex space-x-6 items-center">
+            <nav className="flex space-x-2 md:space-x-6 items-center">
               {navItems.map((item) => (
                 <button
                   key={item.id}
                   onClick={() => onNavigate(item.id)}
-                  className={`flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                    currentPage === item.id 
-                      ? (highContrast ? 'text-black bg-yellow-400 font-bold' : 'text-brand-700 bg-brand-50')
-                      : (highContrast ? 'text-white hover:text-yellow-400' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50')
-                  }`}
+                  className={`hidden md:flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${currentPage === item.id
+                    ? (highContrast ? 'text-black bg-yellow-400 font-bold' : 'text-brand-700 bg-brand-50')
+                    : (highContrast ? 'text-white hover:text-yellow-400' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50')
+                    }`}
                 >
                   <item.icon className="w-4 h-4 mr-2" />
                   {item.label}
                 </button>
               ))}
-              
-              {/* Accessibility Controls */}
-              <div className="relative ml-2">
-                <button 
-                  onClick={() => setShowA11yMenu(!showA11yMenu)}
-                  className={`p-2 rounded-full transition-colors flex items-center gap-1 ${highContrast ? 'text-yellow-400 hover:bg-slate-800' : 'text-slate-500 hover:bg-slate-100 hover:text-brand-600'}`}
-                  title={t('settings.title')}
-                >
-                  <Type size={20} />
-                  <span className="text-xs font-bold">{language.toUpperCase()}</span>
-                </button>
-                
-                {showA11yMenu && (
-                  <div className={`absolute right-0 mt-2 w-72 rounded-xl shadow-lg ring-1 ring-black ring-opacity-5 py-4 z-50 ${highContrast ? 'bg-slate-800 border border-white' : 'bg-white border border-slate-200'}`}>
-                    <div className="px-4">
-                       <div className="flex justify-between items-center mb-4">
-                          <p className={`text-xs font-bold uppercase tracking-wider ${highContrast ? 'text-yellow-400' : 'text-slate-500'}`}>{t('settings.title')}</p>
-                          <button onClick={() => setShowA11yMenu(false)} className="text-slate-400"><X size={16}/></button>
-                       </div>
-                       
-                       <div className="mb-4">
-                          <p className={`text-sm font-medium mb-2 ${highContrast ? 'text-white' : 'text-slate-700'}`}>{t('settings.language')}</p>
-                          <div className={`flex rounded-lg p-1 border ${highContrast ? 'bg-slate-700 border-slate-600' : 'bg-slate-100 border-slate-200'}`}>
-                             <button onClick={() => setLanguage('en')} className={`flex-1 py-1 text-sm rounded font-medium ${language === 'en' ? (highContrast ? 'bg-yellow-400 text-black' : 'bg-white shadow text-brand-700') : (highContrast ? 'text-white' : 'text-slate-500')}`}>English</button>
-                             <button onClick={() => setLanguage('es')} className={`flex-1 py-1 text-sm rounded font-medium ${language === 'es' ? (highContrast ? 'bg-yellow-400 text-black' : 'bg-white shadow text-brand-700') : (highContrast ? 'text-white' : 'text-slate-500')}`}>Español</button>
-                          </div>
-                       </div>
-
-                       <div className="mb-4">
-                          <p className={`text-sm font-medium mb-2 ${highContrast ? 'text-white' : 'text-slate-700'}`}>{t('settings.text_size')}</p>
-                          <div className={`flex rounded-lg p-1 border ${highContrast ? 'bg-slate-700 border-slate-600' : 'bg-slate-100 border-slate-200'}`}>
-                             <button onClick={() => setTextSize('normal')} className={`flex-1 py-1 text-xs rounded font-medium ${textSize === 'normal' ? (highContrast ? 'bg-yellow-400 text-black' : 'bg-white shadow text-brand-700') : (highContrast ? 'text-white' : 'text-slate-500')}`}>A</button>
-                             <button onClick={() => setTextSize('large')} className={`flex-1 py-1 text-sm rounded font-medium ${textSize === 'large' ? (highContrast ? 'bg-yellow-400 text-black' : 'bg-white shadow text-brand-700') : (highContrast ? 'text-white' : 'text-slate-500')}`}>A+</button>
-                             <button onClick={() => setTextSize('xl')} className={`flex-1 py-1 text-base rounded font-medium ${textSize === 'xl' ? (highContrast ? 'bg-yellow-400 text-black' : 'bg-white shadow text-brand-700') : (highContrast ? 'text-white' : 'text-slate-500')}`}>A++</button>
-                          </div>
-                       </div>
-
-                       <div>
-                          <p className={`text-sm font-medium mb-2 ${highContrast ? 'text-white' : 'text-slate-700'}`}>{t('settings.contrast')}</p>
-                          <button 
-                             onClick={() => setHighContrast(!highContrast)}
-                             className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-bold border transition-colors
-                                ${highContrast ? 'bg-yellow-400 text-black border-yellow-500' : 'bg-slate-800 text-white border-slate-900'}
-                             `}
-                          >
-                             {highContrast ? <><Sun size={16}/> Light Mode</> : <><Moon size={16}/> High Contrast</>}
-                          </button>
-                       </div>
-                    </div>
-                  </div>
-                )}
-              </div>
 
               {user && (
                 <button
                   onClick={onLogout}
-                  className={`flex items-center px-3 py-2 text-sm font-medium rounded-md ml-2 ${highContrast ? 'text-rose-400 hover:text-rose-300' : 'text-rose-600 hover:bg-rose-50'}`}
+                  className={`hidden md:flex items-center px-3 py-2 text-sm font-medium rounded-md ml-2 ${highContrast ? 'text-rose-400 hover:text-rose-300' : 'text-rose-600 hover:bg-rose-50'}`}
                 >
                   <LogOut className="w-4 h-4 mr-2" />
                   {t('nav.logout')}
                 </button>
               )}
+
+              {/* Accessibility Controls */}
+              <div className="relative ml-2 z-[100]">
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setShowA11yMenu(!showA11yMenu);
+                  }}
+                  className={`hidden md:flex p-3 rounded-full transition-colors items-center gap-1.5 cursor-pointer min-w-[60px] ${highContrast ? 'text-yellow-400 hover:bg-slate-800' : 'text-slate-500 hover:bg-slate-100 hover:text-brand-600'}`}
+                  title={t('settings.title')}
+                  type="button"
+                >
+                  <Type size={20} className="pointer-events-none" />
+
+                </button>
+
+                {showA11yMenu && (
+                  <div className={`fixed right-4 top-20 w-72 rounded-xl shadow-2xl ring-1 ring-black ring-opacity-5 py-4 z-[9999] ${highContrast ? 'bg-slate-800 border border-white' : 'bg-white border border-slate-200'}`}>
+                    <div className="px-4">
+                      <div className="flex justify-between items-center mb-4">
+                        <p className={`text-xs font-bold uppercase tracking-wider ${highContrast ? 'text-yellow-400' : 'text-slate-500'}`}>{t('settings.title')}</p>
+                        <button onClick={() => setShowA11yMenu(false)} aria-label="Close Accessibility Menu" className="text-slate-400"><X size={16} /></button>
+                      </div>
+
+
+
+                      <div className="mb-4">
+                        <p className={`text-sm font-medium mb-2 ${highContrast ? 'text-white' : 'text-slate-700'}`}>{t('settings.text_size')}</p>
+                        <div className={`flex rounded-lg p-1 border ${highContrast ? 'bg-slate-700 border-slate-600' : 'bg-slate-100 border-slate-200'}`}>
+                          <button onClick={() => setTextSize('normal')} className={`flex-1 py-1 text-xs rounded font-medium ${textSize === 'normal' ? (highContrast ? 'bg-yellow-400 text-black' : 'bg-white shadow text-brand-700') : (highContrast ? 'text-white' : 'text-slate-500')}`}>A</button>
+                          <button onClick={() => setTextSize('large')} className={`flex-1 py-1 text-sm rounded font-medium ${textSize === 'large' ? (highContrast ? 'bg-yellow-400 text-black' : 'bg-white shadow text-brand-700') : (highContrast ? 'text-white' : 'text-slate-500')}`}>A+</button>
+                          <button onClick={() => setTextSize('xl')} className={`flex-1 py-1 text-base rounded font-medium ${textSize === 'xl' ? (highContrast ? 'bg-yellow-400 text-black' : 'bg-white shadow text-brand-700') : (highContrast ? 'text-white' : 'text-slate-500')}`}>A++</button>
+                        </div>
+                      </div>
+
+
+                    </div>
+                  </div>
+                )}
+              </div>
             </nav>
 
             {/* Mobile menu button */}
             <div className="flex items-center md:hidden gap-4">
-              <button 
-                  onClick={() => setShowA11yMenu(!showA11yMenu)}
-                  className={`p-2 rounded-full ${highContrast ? 'text-yellow-400' : 'text-slate-500'}`}
-                >
-                  <Type size={24} />
+              <button
+                onClick={() => setShowA11yMenu(!showA11yMenu)}
+                aria-label="Accessibility Settings"
+                className={`p-2 rounded-full ${highContrast ? 'text-yellow-400' : 'text-slate-500'}`}
+              >
+                <Type size={24} />
               </button>
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -198,11 +187,10 @@ export const Layout: React.FC<LayoutProps> = ({
                     onNavigate(item.id);
                     setIsMobileMenuOpen(false);
                   }}
-                  className={`flex items-center w-full px-3 py-4 text-base font-medium rounded-md ${
-                     currentPage === item.id 
-                      ? (highContrast ? 'text-black bg-yellow-400' : 'text-brand-700 bg-brand-50')
-                      : (highContrast ? 'text-white' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50')
-                  }`}
+                  className={`flex items-center w-full px-3 py-4 text-base font-medium rounded-md ${currentPage === item.id
+                    ? (highContrast ? 'text-black bg-yellow-400' : 'text-brand-700 bg-brand-50')
+                    : (highContrast ? 'text-white' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50')
+                    }`}
                 >
                   <item.icon className="w-5 h-5 mr-3" />
                   {item.label}
@@ -236,8 +224,8 @@ export const Layout: React.FC<LayoutProps> = ({
           <p>© 2024 North Plains Volunteer Network. All rights reserved.</p>
           <div className="flex space-x-6 mt-4 md:mt-0">
             <button onClick={() => onNavigate('contact')} className="hover:underline">{t('nav.contact')}</button>
-            <a href="#" className="hover:underline">Privacy Policy</a>
-            <a href="#" className="hover:underline">Terms of Service</a>
+            <button onClick={() => onNavigate('privacy-policy')} className="hover:underline">Privacy Policy</button>
+            <button onClick={() => onNavigate('terms-of-service')} className="hover:underline">Terms of Service</button>
           </div>
         </div>
       </footer>

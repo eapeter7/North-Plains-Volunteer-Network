@@ -46,6 +46,7 @@ export interface User {
   // Onboarding State
   onboardingStep: OnboardingStep;
   intakeDate?: string; // Date of program entry
+  justFinishedOnboarding?: boolean; // Transient flag to trigger welcome modal
 
   // Client Specific - HUD & Safety
   preferredName?: string;
@@ -77,7 +78,7 @@ export interface User {
   affectsIndependence?: boolean; // Does it affect ability to live independently?
 
   // Service Info
-  referralSource?: string;
+  // referralSource removed
 
   emergencyContact?: {
     name: string;
@@ -108,8 +109,29 @@ export interface User {
   // Admin/Reporting
   lastActiveDate?: string;
 
+  // Compliance
+  signature?: string;
+  waiverAcceptedDate?: string;
+
   // Notifications
-  notifications?: { message: string; date?: string; read?: boolean }[];
+  notifications?: Notification[];
+  notificationPreferences?: NotificationPreferences;
+}
+
+export interface NotificationPreferences {
+  email: boolean;
+  sms: boolean;
+  calendar: boolean; // Opt-in for calendar downloads/attachments
+}
+
+export interface Notification {
+  id: string;
+  type: 'INFO' | 'ACTION_REQUIRED';
+  message: string;
+  date: string;
+  read: boolean;
+  requestId?: string;
+  actionType?: 'KEEP_DROP';
 }
 
 export interface Request {
@@ -136,11 +158,15 @@ export interface Request {
   status: RequestStatus;
   volunteerId?: string;
   volunteerName?: string;
+  clientLanguage?: string; // Client's preferred language for volunteer matching
 
   // Logistics
   isRecurring?: boolean;
   frequency?: string;
   endDate?: string;
+
+  // Cancellation
+  cancellationReason?: string;
 
   // Group Events
   isGroupEvent?: boolean;
@@ -156,6 +182,10 @@ export interface Request {
   safetyNotes?: string;
   adminNotes?: string;
   alertResolved?: boolean;
+
+  // Admin Review
+  adminReviewRequired?: boolean; // Flag for requests needing admin approval (e.g., "Other" category)
+  adminReviewReason?: string; // Why it needs review
 
   // Survey Status
   clientSurveyCompleted?: boolean;
@@ -182,18 +212,15 @@ export interface SafetyReport {
   status: 'NEW' | 'IN_REVIEW' | 'RESOLVED';
   date: string;
   assignedStaff?: string;
+  subjectName?: string; // Person the report is about
 }
 
 export interface BadgeDef {
   id: string;
-  label: string;
+  labelKey: string; // Updated to match usage in Volunteer.tsx (t(badge.labelKey)) - Wait, let me check usage first.
   icon: string;
   color: string;
-  id: string;
-  label: string;
-  icon: string;
-  color: string;
-  description: string;
+  descriptionKey: string; // Updated to match usage in Volunteer.tsx
 }
 
 export type CommunicationType = 'EMAIL' | 'SMS';

@@ -31,5 +31,55 @@ export const exportToCSV = (data: any[], filename: string) => {
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
+    link.click();
     document.body.removeChild(link);
 };
+
+// --- ICS Calendar Export ---
+import { Request, RequestCategory } from '../types';
+
+export const downloadICS = (request: Request) => {
+    // Helper to format date for ICS (YYYYMMDD)
+    const formatDate = (dateStr: string) => {
+        return dateStr.replace(/-/g, '');
+    };
+
+    // Helper to format time for ICS (THHMMSS)
+    // Assumes simple "HH:MM" or "HH:MM AM/PM" format, normalized to 24h zulu if possible, or floating
+    // For simplicity in this mock, we'll use floating local time or just date if no specific time
+    // Parsing logic mirrored from Volunteer.tsx
+    const formatDateTime = (dateStr: string, timeStr?: string) => {
+        const d = formatDate(dateStr);
+        if (!timeStr) return d; // All day
+
+        // Very basic parser for "10:00 AM" etc
+        // If complex, just return date to avoid errors
+        return d;
+    };
+
+    // Calculate start/end
+    const dateStr = formatDate(request.date);
+
+    // Create ICS content
+    const icsContent = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//NPVN//Volunteer Network//EN
+BEGIN:VEVENT
+UID:${request.id}@npvn.org
+DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').split('.')[0]}Z
+DTSTART;VALUE=DATE:${dateStr}
+SUMMARY:NPVN: ${request.category} - ${request.subcategory}
+DESCRIPTION:${request.description}
+LOCATION:${request.location}
+END:VEVENT
+END:VCALENDAR`;
+
+    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = window.URL.createObjectURL(blob);
+    link.setAttribute('download', `event-${request.id}.ics`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+};
+

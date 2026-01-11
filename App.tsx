@@ -6,9 +6,11 @@ import { MOCK_USERS, MOCK_REQUESTS } from './services/mockData';
 import { PublicHome, LoginScreen, AboutPage, RegisterScreen, DonatePage } from './screens/Public';
 import { ClientDashboard, CreateRequestFlow, DualDashboard, ClientResources } from './screens/Client';
 import { VolunteerDashboard, VolunteerOnboarding, OpportunityBoard, VolunteerResources, VolunteerHistory, SafetyReportingPage, CommunityResources, DualHistory, VolunteerSettings } from './screens/Volunteer';
-import { AdminDashboard } from './screens/Admin';
+import { AdminDashboard, AdminAssignments } from './screens/Admin';
 import { UserProfile } from './screens/Profile';
 import { ThemeProvider } from './context/ThemeContext';
+import { TermsOfService } from './screens/TermsOfService';
+import { PrivacyPolicy } from './screens/PrivacyPolicy';
 
 const AppContent: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -83,6 +85,37 @@ const AppContent: React.FC = () => {
 
   // --- Volunteer Actions ---
   const handleAcceptRequest = (id: string) => {
+    // Notify Client Logic
+    const targetReq = requests.find(r => r.id === id);
+    if (targetReq && user) {
+      const clientUser = Object.values(MOCK_USERS).find(u => u.id === targetReq.clientId);
+      if (clientUser) {
+        const prefs = clientUser.notificationPreferences || { email: true, sms: false, calendar: false };
+        const msg = `Good news! ${user.name} has signed up for your request '${targetReq.category}' on ${targetReq.date}.`;
+
+        // Simulate notifications based on preferences
+        if (prefs.email) {
+          console.log(`[EMAIL SENT] To: ${clientUser.email}`);
+          console.log(`Subject: Volunteer Match Confirmed`);
+          console.log(`Body: ${msg}`);
+          if (prefs.calendar) console.log(`[ATTACHMENT] Calendar Event (.ics) included.`);
+        }
+        if (prefs.sms) {
+          console.log(`[SMS SENT] To: ${clientUser.phone || 'Unknown'}: ${msg}`);
+        }
+
+        // Add In-App Notification
+        clientUser.notifications = [{
+          id: `n_${Date.now()}`,
+          type: 'INFO',
+          message: msg,
+          date: new Date().toISOString(),
+          read: false,
+          requestId: id
+        }, ...(clientUser.notifications || [])];
+      }
+    }
+
     setRequests(requests.map(r => {
       if (r.id !== id) return r;
 
@@ -134,16 +167,102 @@ const AppContent: React.FC = () => {
   };
 
   const handleWithdraw = (reqId: string, reason: string) => {
-    setRequests(prev => prev.map(r =>
-      r.id === reqId
-        ? { ...r, status: RequestStatus.PENDING, volunteerId: undefined, volunteerName: undefined, adminNotes: (r.adminNotes ? r.adminNotes + '\n' : '') + `Withdrawn: ${reason}` }
-        : r
-    ));
+    setRequests(prev => prev.map(r => {
+      if (r.id !== reqId) return r;
+
+      const baseUpdates = {
+        adminNotes: (r.adminNotes ? r.adminNotes + '\n' : '') + `Withdrawn: ${reason}`
+      };
+
+      if (r.isGroupEvent) {
+        const newEnrolled = (r.enrolledVolunteers || []).filter(vid => vid !== user?.id);
+        return {
+          ...r,
+          ...baseUpdates,
+          enrolledVolunteers: newEnrolled,
+          status: RequestStatus.PENDING // Group events always PENDING until full
+        };
+      }
+
+      return {
+        ...r,
+        ...baseUpdates,
+        status: RequestStatus.PENDING,
+        volunteerId: undefined,
+        volunteerName: undefined
+      };
+    }));
+  };
+
+  const handleCancelRequest = (reqId: string, reason: string) => {
+    setRequests(prev => prev.map(r => {
+      if (r.id !== reqId) return r;
+
+      // Notifications Logic
+      if (r.status === RequestStatus.MATCHED || (r.isGroupEvent && (r.enrolledVolunteers?.length || 0) > 0)) {
+        const volunteersToNotify = r.isGroupEvent ? (r.enrolledVolunteers || []) : [r.volunteerId!];
+
+        volunteersToNotify.forEach(volId => {
+          // Find the user in MOCK_USERS to update their state "in the cloud"
+          const volUser = Object.values(MOCK_USERS).find(u => u.id === volId);
+          if (volUser) {
+            const newNotif: any = { // Using any to bypass strict type check for now or import Notification type
+              id: `n${Date.now()}`,
+              type: 'INFO',
+              message: `Request '${r.category}' on ${r.date} was cancelled by the client. Reason: ${reason}`,
+              date: new Date().toISOString(),
+              read: false
+            };
+            volUser.notifications = [newNotif, ...(volUser.notifications || [])];
+          }
+        });
+
+        // Simulating sending notification by console log
+        console.log(`Notification sent to volunteers ${volunteersToNotify}: "Request ${r.category} on ${r.date} was cancelled. Reason: ${reason}"`);
+      }
+
+      return {
+        ...r,
+        status: RequestStatus.CANCELLED,
+        cancellationReason: reason
+      };
+    }));
   };
 
   // --- Admin Actions ---
   const handleUpdateRequest = (reqId: string, updates: Partial<Request>) => {
-    setRequests(prev => prev.map(r => r.id === reqId ? { ...r, ...updates } : r));
+    setRequests(prev => prev.map(r => {
+      if (r.id !== reqId) return r;
+
+      // Check for modification of MATCHED request (Logic also allows CLIENT updates to trigger this)
+      if (r.status === RequestStatus.MATCHED && (updates.date || updates.timeWindow || updates.location)) {
+        // Detect if changed
+        const isChanged = (updates.date && updates.date !== r.date) ||
+          (updates.timeWindow && updates.timeWindow !== r.timeWindow) ||
+          (updates.location && updates.location !== r.location);
+
+        if (isChanged) {
+          const volId = r.volunteerId;
+          if (volId) {
+            const volUser = Object.values(MOCK_USERS).find(u => u.id === volId);
+            if (volUser) {
+              const newNotif: any = {
+                id: `n${Date.now()}`,
+                type: 'ACTION_REQUIRED',
+                actionType: 'KEEP_DROP',
+                requestId: r.id,
+                message: `Modification Alert: The request '${r.category}' has been updated. New details: ${updates.date || r.date} @ ${updates.timeWindow || r.timeWindow}. Do you want to keep this assignment?`,
+                date: new Date().toISOString(),
+                read: false
+              };
+              volUser.notifications = [newNotif, ...(volUser.notifications || [])];
+            }
+          }
+        }
+      }
+
+      return { ...r, ...updates };
+    }));
   };
 
   // Render Logic based on Route & Role
@@ -157,9 +276,15 @@ const AppContent: React.FC = () => {
         case 'login': return <LoginScreen onLogin={handleLogin} onNavigate={handleNavigate} />;
         case 'register': return <RegisterScreen onRegister={handleRegister} />;
         case 'donate': return <DonatePage />;
+        case 'terms-of-service': return <TermsOfService onBack={() => handleNavigate('home')} />;
+        case 'privacy-policy': return <PrivacyPolicy onBack={() => handleNavigate('home')} />;
         default: return <PublicHome onNavigate={handleNavigate} />;
       }
     }
+
+    // Authenticated generic pages
+    if (currentPage === 'terms-of-service') return <TermsOfService onBack={() => handleNavigate('dashboard')} />;
+    if (currentPage === 'privacy-policy') return <PrivacyPolicy onBack={() => handleNavigate('dashboard')} />;
 
     if (user.role === UserRole.CLIENT) {
       switch (currentPage) {
@@ -173,9 +298,11 @@ const AppContent: React.FC = () => {
             user={user}
             requests={requests.filter(r => r.clientId === user.id)}
             onCreateRequest={() => handleNavigate('create-request')}
+            onUpdateRequest={handleUpdateRequest}
             onUpdateUser={handleUpdateUser}
             onNavigate={handleNavigate}
             onCompleteSurvey={handleCompleteSurvey}
+            onCancelRequest={handleCancelRequest}
           />
         );
       }
@@ -188,7 +315,7 @@ const AppContent: React.FC = () => {
         case 'history':
           return <VolunteerHistory user={user} requests={requests} />;
         case 'volunteer-resources':
-          return <VolunteerResources />;
+          return <VolunteerResources user={user} onUpdate={handleUpdateUser} />;
         case 'report-safety':
           return <SafetyReportingPage onNavigate={handleNavigate} />;
         case 'community-resources':
@@ -218,7 +345,7 @@ const AppContent: React.FC = () => {
         case 'history':
           return <DualHistory user={user} requests={requests} />;
         case 'volunteer-resources':
-          return <VolunteerResources />;
+          return <VolunteerResources user={user} onUpdate={handleUpdateUser} />;
         case 'client-resources':
           return <ClientResources />;
         case 'report-safety':
@@ -238,7 +365,9 @@ const AppContent: React.FC = () => {
               onCompleteSurvey: handleCompleteSurvey,
               onAccept: handleAcceptRequest,
               onCompleteRequest: handleCompleteRequest,
-              onWithdraw: handleWithdraw
+              onWithdraw: handleWithdraw,
+              onUpdateRequest: handleUpdateRequest,
+              onCancelRequest: handleCancelRequest
             }}
           />
         );
@@ -246,7 +375,8 @@ const AppContent: React.FC = () => {
     }
 
     if (user.role === UserRole.ADMIN || user.role === UserRole.COORDINATOR) {
-      if (currentPage === 'opportunities') return <OpportunityBoard requests={requests} onAccept={handleAcceptRequest} />;
+      if (currentPage === 'opportunities') return <OpportunityBoard requests={requests} onAccept={handleAcceptRequest} user={user} />;
+      if (currentPage === 'my-assignments') return <AdminAssignments user={user} requests={requests} onCompleteRequest={handleCompleteRequest} onWithdraw={handleWithdraw} />;
       return <AdminDashboard requests={requests} onUpdateRequest={handleUpdateRequest} />;
     }
 

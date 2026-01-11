@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Request, RequestStatus, RequestCategory, User, OnboardingStep } from '../types';
-import { Card, Button, StatusBadge, Input, Modal, ProgressBar, Tabs } from '../components/UI';
-import { Calendar, MapPin, Clock, AlertTriangle, CheckCircle, ShieldCheck, CreditCard, Heart, ChevronRight, ChevronLeft, Phone, Mail, HelpCircle } from 'lucide-react';
+import { Card, Button, StatusBadge, StatWidget, Modal, Input, ProgressBar, Accordion, NeedHelpCard, WaiverForm, Tabs } from '../components/UI';
+import { Calendar, MapPin, Clock, AlertTriangle, CheckCircle, ShieldCheck, CreditCard, Heart, ChevronRight, ChevronLeft, Phone, Mail, HelpCircle, Users, AlertCircle, Star, PlayCircle, Settings, X, MessageSquare } from 'lucide-react';
+import confetti from 'canvas-confetti';
 import { VolunteerDashboard } from './Volunteer';
 import { MOCK_USERS } from '../services/mockData';
 import { useTheme } from '../context/ThemeContext';
+import { downloadICS } from '../utils/export';
 
 interface ClientProps {
    user: User;
@@ -13,6 +15,8 @@ interface ClientProps {
    onUpdateUser: (u: Partial<User>) => void;
    onNavigate: (p: string) => void;
    onCompleteSurvey: (reqId: string, data: any) => void;
+   onUpdateRequest: (id: string, data: Partial<Request>) => void;
+   onCancelRequest: (id: string, reason: string) => void;
 }
 
 export interface DualProps {
@@ -26,16 +30,146 @@ export interface DualProps {
       onAccept: (id: string) => void;
       onCompleteRequest: (reqId: string, data: any) => void;
       onWithdraw: (reqId: string, reason: string) => void;
+      onUpdateRequest: (id: string, data: Partial<Request>) => void;
+      onCancelRequest: (id: string, reason: string) => void;
    };
 }
 
-export const ClientDashboard: React.FC<ClientProps> = ({ user, requests, onCreateRequest, onUpdateUser, onNavigate, onCompleteSurvey }) => {
+export const OnboardingNextStepsModal: React.FC<{ onClose: () => void, role: 'CLIENT' | 'VOLUNTEER' }> = ({ onClose, role }) => {
+   const { t } = useTheme();
+
+   return (
+      <Modal isOpen={true} onClose={onClose} title={t('welcome')}>
+         <div className="space-y-6 text-center py-4">
+            <div className="w-20 h-20 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mx-auto text-green-600 mb-4">
+               <CheckCircle size={40} />
+            </div>
+
+            <h2 className="text-2xl font-bold dark:text-white">
+               {t('onboarding.welcome_title')}
+            </h2>
+
+            <p className="text-slate-600 dark:text-slate-300">
+               {role === 'VOLUNTEER'
+                  ? "Thank you for joining our team of neighbors helping neighbors! To ensure safety, we have a few important next steps."
+                  : "Thank you for joining our community! Your profile is complete, and you can now start requesting assistance."}
+            </p>
+
+            <div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 text-left space-y-4">
+               <h3 className="font-bold text-lg dark:text-white">Next Steps:</h3>
+               <ul className="space-y-3">
+                  {role === 'VOLUNTEER' ? (
+                     <>
+                        <li className="flex items-start gap-3">
+                           <div className="bg-blue-100 text-blue-700 p-1 rounded-full mt-0.5"><ShieldCheck size={14} /></div>
+                           <span className="text-sm dark:text-slate-300"><strong>Background Check:</strong> Required for all volunteers. You'll see a status indicator on your dashboard.</span>
+                        </li>
+                        <li className="flex items-start gap-3">
+                           <div className="bg-purple-100 text-purple-700 p-1 rounded-full mt-0.5"><PlayCircle size={14} /></div>
+                           <span className="text-sm dark:text-slate-300"><strong>Training:</strong> Complete the short orientation modules in the Training Center.</span>
+                        </li>
+                     </>
+                  ) : (
+                     <>
+                        <li className="flex items-start gap-3">
+                           <div className="bg-blue-100 text-blue-700 p-1 rounded-full mt-0.5"><MessageSquare size={14} /></div>
+                           <span className="text-sm dark:text-slate-300"><strong>Make a Request:</strong> Use the "New Request" button to ask for a ride, errand, or visit.</span>
+                        </li>
+                        <li className="flex items-start gap-3">
+                           <div className="bg-purple-100 text-purple-700 p-1 rounded-full mt-0.5"><Users size={14} /></div>
+                           <span className="text-sm dark:text-slate-300"><strong>Get Matched:</strong> A background-checked neighbor will pick up your request.</span>
+                        </li>
+                     </>
+                  )}
+               </ul>
+            </div>
+
+            <Button size="lg" className="w-full" onClick={onClose}>
+               {role === 'VOLUNTEER' ? "Go to Dashboard" : "Get Started"}
+            </Button>
+         </div>
+      </Modal>
+   );
+};
+
+const ContactStaffModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+   const { t } = useTheme();
+   const [sent, setSent] = useState(false);
+
+   if (sent) {
+      return (
+         <Modal isOpen={true} onClose={onClose} title={t('contact.title')}>
+            <div className="text-center py-8">
+               <div className="w-16 h-16 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mx-auto text-green-600 dark:text-green-400 mb-4">
+                  <CheckCircle size={32} />
+               </div>
+               <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{t('contact.success')}</h3>
+               <Button onClick={onClose} className="mt-4">{t('common.close')}</Button>
+            </div>
+         </Modal>
+      );
+   }
+
+   return (
+      <Modal isOpen={true} onClose={onClose} title={t('contact.title')}>
+         <div className="space-y-4">
+            <p className="text-slate-600 dark:text-slate-300 mb-2">{t('contact.intro')}</p>
+            <Input label={t('contact.subject')} placeholder="e.g. Suggestion, Question, Praise" />
+            <div className="space-y-1">
+               <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">{t('contact.message')}</label>
+               <textarea className="w-full p-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-brand-500 outline-none h-32 text-slate-900 dark:text-white" placeholder="..." />
+            </div>
+            <div className="flex justify-end pt-2">
+               <Button onClick={() => setSent(true)}>{t('contact.send')}</Button>
+            </div>
+         </div>
+      </Modal>
+   );
+   // End ContactStaffModal
+};
+
+const CancellationModal: React.FC<{ request: Request; onClose: () => void; onConfirm: (reason: string) => void }> = ({ request, onClose, onConfirm }) => {
+   const { t } = useTheme();
+   const [reason, setReason] = useState('');
+
+   return (
+      <Modal isOpen={true} onClose={onClose} title={t('common.cancel_request')}>
+         <div className="space-y-4">
+            <p className="text-slate-600 dark:text-slate-300">
+               {t('client.cancel_confirm')} <strong>{request.category}</strong>?
+            </p>
+            {request.status === RequestStatus.MATCHED && (
+               <div className="p-3 bg-amber-50 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 text-sm rounded border border-amber-200 dark:border-amber-800">
+                  <AlertTriangle size={16} className="inline mr-1 mb-0.5" />
+                  {t('client.cancel_matched_warning')}
+               </div>
+            )}
+            <Input
+               label={t('common.reason')}
+               placeholder="e.g. Plans changed, Appointment cancelled..."
+               value={reason}
+               onChange={(e) => setReason(e.target.value)}
+               as="textarea"
+            />
+            <div className="flex justify-end gap-2 pt-2">
+               <Button variant="outline" onClick={onClose}>{t('common.back')}</Button>
+               <Button variant="danger" disabled={!reason.trim()} onClick={() => onConfirm(reason)}>{t('common.confirm_cancel')}</Button>
+            </div>
+         </div>
+      </Modal>
+   );
+};
+
+export const ClientDashboard: React.FC<ClientProps> = ({ user, requests, onCreateRequest, onUpdateUser, onNavigate, onCompleteSurvey, onUpdateRequest, onCancelRequest }) => {
    const [surveyRequest, setSurveyRequest] = useState<Request | null>(null);
+   const [editingRequest, setEditingRequest] = useState<Request | null>(null);
+   const [cancellingRequest, setCancellingRequest] = useState<Request | null>(null);
+   const [showContact, setShowContact] = useState(false);
    const { t } = useTheme();
 
    // Check for onboarding
    if (user.onboardingStep !== OnboardingStep.COMPLETE) {
-      return <ClientOnboarding user={user} onUpdate={onUpdateUser} />;
+      return <ClientOnboarding user={user} onUpdate={onUpdateUser} onNavigate={onNavigate} />;
    }
 
    // Check for mandatory surveys (1 hour after service completion)
@@ -98,7 +232,15 @@ export const ClientDashboard: React.FC<ClientProps> = ({ user, requests, onCreat
                ) : (
                   <div className="grid gap-6">
                      {activeRequests.map(req => (
-                        <RequestCard key={req.id} request={req} />
+                        <RequestCard
+                           key={req.id}
+                           request={req}
+                           onEdit={(req) => setEditingRequest(req)}
+                           onCancel={(id) => {
+                              const r = requests.find(rq => rq.id === id);
+                              if (r) setCancellingRequest(r);
+                           }}
+                        />
                      ))}
                   </div>
                )}
@@ -112,10 +254,10 @@ export const ClientDashboard: React.FC<ClientProps> = ({ user, requests, onCreat
                      <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
                         <thead className="bg-slate-50 dark:bg-slate-800">
                            <tr>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider">Date</th>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider">Type</th>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider">Status</th>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider">Volunteer</th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider">{t('common.date')}</th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider">{t('common.category')}</th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider">{t('table.status')}</th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider">{t('table.volunteer')}</th>
                            </tr>
                         </thead>
                         <tbody className="bg-white dark:bg-black divide-y divide-slate-200 dark:divide-slate-700">
@@ -140,17 +282,17 @@ export const ClientDashboard: React.FC<ClientProps> = ({ user, requests, onCreat
             <Card title={t('client.training')}>
                <div className="space-y-2">
                   <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2.5">
-                     <div className="bg-brand-600 dark:bg-yellow-400 h-2.5 rounded-full" style={{ width: '100%' }}></div>
+                     <div className="bg-brand-600 dark:bg-yellow-400 h-2.5 rounded-full w-full"></div>
                   </div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 text-right">Platform Overview: Complete</p>
-                  <Button variant="outline" size="sm" className="w-full mt-2" onClick={() => onNavigate('client-resources')}>View Resources</Button>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 text-right">{t('client.platform_overview')}</p>
+                  <Button variant="outline" size="sm" className="w-full mt-2" onClick={() => onNavigate('client-resources')}>{t('client.view_resources')}</Button>
                </div>
             </Card>
 
             {/* Local Resource Directory */}
             <Card title={t('client.directory')}>
-               <p className="text-sm text-slate-600 dark:text-slate-300 mb-3">Access local food, housing, and transportation resources.</p>
-               <Button variant="secondary" className="w-full" onClick={() => onNavigate('resources')}>View Local Directory</Button>
+               <p className="text-sm text-slate-600 dark:text-slate-300 mb-3">{t('client.access_resources')}</p>
+               <Button variant="secondary" className="w-full" onClick={() => onNavigate('resources')}>{t('client.view_directory')}</Button>
             </Card>
 
             {/* Notifications */}
@@ -160,16 +302,16 @@ export const ClientDashboard: React.FC<ClientProps> = ({ user, requests, onCreat
                      <div className="flex items-start gap-3 p-2 bg-blue-50 dark:bg-slate-800 rounded border border-blue-100 dark:border-slate-600 text-sm">
                         <div className="w-2 h-2 mt-1.5 bg-blue-500 rounded-full flex-shrink-0" />
                         <div>
-                           <p className="font-bold text-blue-900 dark:text-blue-300">Volunteer Assigned!</p>
-                           <p className="text-xs text-blue-700 dark:text-blue-200">A neighbor has picked up your request.</p>
+                           <p className="font-bold text-blue-900 dark:text-blue-300">{t('client.volunteer_assigned')}</p>
+                           <p className="text-xs text-blue-700 dark:text-blue-200">{t('client.neighbor_picked')}</p>
                         </div>
                      </div>
                   )}
                   <div className="flex items-start gap-3 p-2 hover:bg-slate-50 dark:hover:bg-slate-900 rounded transition-colors text-sm">
                      <div className="w-2 h-2 mt-1.5 bg-green-500 rounded-full flex-shrink-0" />
                      <div>
-                        <p className="font-medium text-slate-800 dark:text-white">System Update</p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">Holiday hours updated for support.</p>
+                        <p className="font-medium text-slate-800 dark:text-white">{t('client.system_update')}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">{t('client.holiday_hours')}</p>
                      </div>
                   </div>
                </div>
@@ -179,38 +321,26 @@ export const ClientDashboard: React.FC<ClientProps> = ({ user, requests, onCreat
             <Card title={t('client.announcements')}>
                <div className="space-y-3">
                   <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm">
-                     <p className="font-bold text-slate-800 dark:text-white mb-1">📢 Senior Center Events</p>
-                     <p className="text-slate-600 dark:text-slate-300">Lunch & Learn this Friday at 12pm.</p>
+                     <p className="font-bold text-slate-800 dark:text-white mb-1">{t('client.senior_events')}</p>
+                     <p className="text-slate-600 dark:text-slate-300">{t('client.lunch_learn')}</p>
                   </div>
                </div>
             </Card>
 
             <div className="pt-2">
-               <Button variant="danger" className="w-full justify-center py-3 font-bold shadow-sm" onClick={() => onNavigate('report-safety')}>
+               <Button variant="danger" className="w-full justify-center py-3 font-bold shadow-sm mb-3" onClick={() => onNavigate('report-safety')}>
                   <AlertTriangle size={20} className="mr-2" />
                   {t('client.report_safety')}
                </Button>
+
+               <Button variant="outline" className="w-full justify-center py-3 font-bold shadow-sm bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200" onClick={() => setShowContact(true)}>
+                  <MessageSquare size={20} className="mr-2" />
+                  {t('common.contact_staff')}
+               </Button>
             </div>
 
-            <Card className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800">
-               <div className="flex items-start gap-3">
-                  <div className="p-2 bg-white dark:bg-black rounded-full text-slate-400 border border-slate-200 dark:border-slate-700">
-                     <HelpCircle size={20} />
-                  </div>
-                  <div>
-                     <h4 className="font-bold text-slate-900 dark:text-white">{t('need_help')}</h4>
-                     <p className="text-sm text-slate-600 dark:text-slate-300 mb-3">{t('contact_support')}</p>
-                     <div className="space-y-1">
-                        <p className="text-sm font-bold text-brand-700 dark:text-yellow-400 flex items-center gap-2">
-                           <Phone size={14} /> 971-712-3845
-                        </p>
-                        <p className="text-sm font-bold text-brand-700 dark:text-yellow-400 flex items-center gap-2">
-                           <Mail size={14} /> npvolunteernetwork@gmail.com
-                        </p>
-                     </div>
-                  </div>
-               </div>
-            </Card>
+            {/* Need Help Card */}
+            <NeedHelpCard />
          </div>
 
          {/* Mandatory Survey Modal */}
@@ -221,6 +351,41 @@ export const ClientDashboard: React.FC<ClientProps> = ({ user, requests, onCreat
                   onCompleteSurvey(surveyRequest.id, data);
                   setSurveyRequest(null);
                }}
+            />
+         )}
+
+         {/* Edit Request Modal */}
+         {editingRequest && (
+            <EditRequestModal
+               request={editingRequest}
+               onClose={() => setEditingRequest(null)}
+               onSave={(updatedData) => {
+                  onUpdateRequest(editingRequest.id, updatedData);
+                  setEditingRequest(null);
+               }}
+            />
+         )}
+
+
+         {showContact && (
+            <ContactStaffModal onClose={() => setShowContact(false)} />
+         )}
+
+         {cancellingRequest && (
+            <CancellationModal
+               request={cancellingRequest}
+               onClose={() => setCancellingRequest(null)}
+               onConfirm={(reason) => {
+                  onCancelRequest(cancellingRequest.id, reason);
+                  setCancellingRequest(null);
+               }}
+            />
+         )}
+
+         {user.justFinishedOnboarding && (
+            <OnboardingNextStepsModal
+               role="CLIENT"
+               onClose={() => onUpdateUser({ justFinishedOnboarding: false })}
             />
          )}
       </div>
@@ -247,6 +412,8 @@ export const DualDashboard: React.FC<DualProps> = ({ user, requests, actions }) 
                onUpdateUser={actions.onUpdateUser}
                onNavigate={actions.onNavigate}
                onCompleteSurvey={actions.onCompleteSurvey}
+               onUpdateRequest={actions.onUpdateRequest}
+               onCancelRequest={actions.onCancelRequest}
             />
          ) : (
             <VolunteerDashboard
@@ -263,7 +430,8 @@ export const DualDashboard: React.FC<DualProps> = ({ user, requests, actions }) 
    );
 };
 
-const ClientOnboarding: React.FC<{ user: User; onUpdate: (u: Partial<User>) => void }> = ({ user, onUpdate }) => {
+const ClientOnboarding: React.FC<{ user: User; onUpdate: (u: Partial<User>) => void; onNavigate: (p: string) => void }> = ({ user, onUpdate, onNavigate }) => {
+   const { t } = useTheme();
    const [step, setStep] = useState(1);
    const [formData, setFormData] = useState<Partial<User>>({
       ...user,
@@ -316,44 +484,53 @@ const ClientOnboarding: React.FC<{ user: User; onUpdate: (u: Partial<User>) => v
 
    const handleNext = () => setStep(s => s + 1);
    const handleFinish = () => {
-      onUpdate({ ...formData, onboardingStep: OnboardingStep.COMPLETE, intakeDate: new Date().toISOString().split('T')[0] });
+      confetti({
+         particleCount: 100,
+         spread: 70,
+         origin: { y: 0.6 }
+      });
+      onUpdate({ ...formData, onboardingStep: OnboardingStep.COMPLETE, intakeDate: new Date().toISOString().split('T')[0], justFinishedOnboarding: true });
+      // Force navigation to dashboard after state update to prevent blank screen
+      setTimeout(() => {
+         onNavigate('dashboard');
+      }, 100);
    };
 
    return (
       <div className="max-w-2xl mx-auto py-8">
-         <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-6 text-center">Welcome to NPVN</h1>
-         <p className="text-slate-600 dark:text-slate-300 text-center mb-8">Please complete your profile. This information is required for our grant reporting.</p>
+         <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-6 text-center">{t('onboarding.welcome_title')}</h1>
+         <p className="text-slate-600 dark:text-slate-300 text-center mb-8">{t('onboarding.welcome_desc')}</p>
 
-         <ProgressBar current={step} total={5} labels={['Profile', 'Identity', 'Household', 'Health', 'Contact']} />
+         <ProgressBar current={step} total={6} labels={[t('onboarding.step_1_title').split(': ')[1], t('onboarding.step_2_title').split(': ')[1], t('onboarding.step_3_title').split(': ')[1], t('onboarding.step_4_title').split(': ')[1], t('onboarding.step_5_title').split(': ')[1], t('onboarding.waiver')]} />
 
          <Card>
             {step === 1 && (
                <div className="space-y-4">
-                  <h2 className="text-xl font-bold mb-4">Step 1: Personal Profile</h2>
+                  <h2 className="text-xl font-bold mb-4">{t('onboarding.step_1_title')}</h2>
                   <div className="grid grid-cols-2 gap-4">
-                     <Input label="First Name" value={formData.name?.split(' ')[0] || ''} onChange={e => setFormData({ ...formData, name: e.target.value })} />
-                     <Input label="Last Name" placeholder="Smith" />
+                     <Input label={t('onboarding.first_name')} value={formData.name?.split(' ')[0] || ''} onChange={e => setFormData({ ...formData, name: e.target.value })} />
+                     <Input label={t('onboarding.last_name')} placeholder="Smith" />
                   </div>
-                  <Input label="Preferred Name (Optional)" value={formData.preferredName || ''} onChange={e => setFormData({ ...formData, preferredName: e.target.value })} />
-                  <Input label="Address" value="North Plains, OR 97133" disabled className="bg-slate-50 dark:bg-slate-800" />
-                  <Input label="Date of Birth" type="date" value={formData.dob || ''} onChange={e => setFormData({ ...formData, dob: e.target.value })} />
+                  <Input label={t('onboarding.preferred_name')} value={formData.preferredName || ''} onChange={e => setFormData({ ...formData, preferredName: e.target.value })} />
+                  <Input label={t('onboarding.address')} value="North Plains, OR 97133" disabled className="bg-slate-50 dark:bg-slate-800" />
+                  <Input label={t('onboarding.dob')} type="date" value={formData.dob || ''} onChange={e => setFormData({ ...formData, dob: e.target.value })} />
 
                   <div className="grid grid-cols-1 gap-6 pt-4">
                      {/* Profile Photo */}
                      <div className="bg-blue-50 dark:bg-slate-800 p-4 rounded border border-blue-200 dark:border-slate-600">
                         <label className="block text-sm font-bold text-blue-900 dark:text-blue-300 mb-2 flex items-center">
                            <ShieldCheck size={18} className="mr-2" />
-                           Profile Photo
+                           {t('onboarding.profile_photo')}
                         </label>
                         <Input label="" type="file" className="bg-white dark:bg-black" onChange={(e) => handleFileUpload(e as React.ChangeEvent<HTMLInputElement>, 'avatar')} />
                         <p className="text-sm font-bold text-blue-800 dark:text-blue-200 mt-2">
-                           "This helps volunteers recognize you safely."
+                           "{t('onboarding.photo_desc')}"
                         </p>
                      </div>
                   </div>
 
                   <div className="flex justify-end pt-4">
-                     <Button onClick={handleNext}>Next Step</Button>
+                     <Button onClick={handleNext}>{t('common.next')}</Button>
                   </div>
                </div>
             )}
@@ -363,89 +540,89 @@ const ClientOnboarding: React.FC<{ user: User; onUpdate: (u: Partial<User>) => v
 
             {step === 2 && (
                <div className="space-y-4">
-                  <h2 className="text-xl font-bold mb-4">Step 2: Identity & Demographics</h2>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">HUD-required demographic information.</p>
+                  <h2 className="text-xl font-bold mb-4">{t('onboarding.step_2_title')}</h2>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">{t('onboarding.hud_desc')}</p>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                     <Input label="Gender" as="select" value={formData.gender || ''} onChange={e => setFormData({ ...formData, gender: e.target.value })}>
-                        <option value="">Select...</option>
-                        <option>Female</option>
-                        <option>Male</option>
-                        <option>Non-binary</option>
-                        <option>Prefer not to say</option>
+                     <Input label={t('onboarding.gender')} as="select" value={formData.gender || ''} onChange={e => setFormData({ ...formData, gender: e.target.value })}>
+                        <option value="">{t('common.select')}</option>
+                        <option>{t('onboarding.female')}</option>
+                        <option>{t('onboarding.male')}</option>
+                        <option>{t('onboarding.non_binary')}</option>
+                        <option>{t('onboarding.prefer_not_say')}</option>
                      </Input>
-                     <Input label="Veteran Status" as="select" value={formData.veteranStatus !== undefined ? (formData.veteranStatus ? 'Yes' : 'No') : ''} onChange={e => setFormData({ ...formData, veteranStatus: e.target.value === 'Yes' })}>
-                        <option value="">Select...</option>
-                        <option value="Yes">Yes, I am a veteran</option>
-                        <option value="No">No</option>
+                     <Input label={t('onboarding.veteran_status')} as="select" value={formData.veteranStatus !== undefined ? (formData.veteranStatus ? 'Yes' : 'No') : ''} onChange={e => setFormData({ ...formData, veteranStatus: e.target.value === 'Yes' })}>
+                        <option value="">{t('common.select')}</option>
+                        <option value="Yes">{t('onboarding.is_veteran')}</option>
+                        <option value="No">{t('common.no')}</option>
                      </Input>
                   </div>
 
-                  <Input label="Ethnicity" as="select" value={formData.ethnicity || ''} onChange={e => setFormData({ ...formData, ethnicity: e.target.value as any })}>
-                     <option value="">Select...</option>
-                     <option value="Hispanic/Latino">Hispanic or Latino</option>
-                     <option value="Not Hispanic/Latino">Not Hispanic or Latino</option>
+                  <Input label={t('onboarding.ethnicity')} as="select" value={formData.ethnicity || ''} onChange={e => setFormData({ ...formData, ethnicity: e.target.value as any })}>
+                     <option value="">{t('common.select')}</option>
+                     <option value="Hispanic/Latino">{t('onboarding.hispanic')}</option>
+                     <option value="Not Hispanic/Latino">{t('onboarding.not_hispanic')}</option>
                   </Input>
 
-                  <Input label="Race (HUD)" as="select" value={formData.race || ''} onChange={e => setFormData({ ...formData, race: e.target.value })}>
-                     <option value="">Select...</option>
+                  <Input label={t('onboarding.race')} as="select" value={formData.race || ''} onChange={e => setFormData({ ...formData, race: e.target.value })}>
+                     <option value="">{t('common.select')}</option>
                      <option value="White">White</option>
-                     <option value="Black">Black or African American</option>
+                     <option value="Black or African American">Black or African American</option>
                      <option value="Asian">Asian</option>
-                     <option value="Native">American Indian or Alaska Native</option>
-                     <option value="Pacific">Native Hawaiian / Pacific Islander</option>
-                     <option value="Multi">Multi-Racial</option>
+                     <option value="American Indian or Alaska Native">American Indian or Alaska Native</option>
+                     <option value="Native Hawaiian or Other Pacific Islander">Native Hawaiian or Other Pacific Islander</option>
+                     <option value="Multi-Racial">Multi-Racial</option>
                   </Input>
 
                   <div>
-                     <Input label="Preferred Language" as="select" value={langSelect} onChange={e => handleLanguageChange(e.target.value)}>
-                        <option value="">Select...</option>
+                     <Input label={t('onboarding.preferred_language')} as="select" value={langSelect} onChange={e => handleLanguageChange(e.target.value)}>
+                        <option value="">{t('common.select')}</option>
                         <option>English</option>
                         <option>Spanish</option>
-                        <option>Other</option>
+                        <option>{t('common.other')}</option>
                      </Input>
                      {langSelect === 'Other' && (
-                        <Input label="Specify Language" value={formData.preferredLanguage || ''} onChange={e => setFormData({ ...formData, preferredLanguage: e.target.value })} />
+                        <Input label={t('onboarding.specify_language')} value={formData.preferredLanguage || ''} onChange={e => setFormData({ ...formData, preferredLanguage: e.target.value })} />
                      )}
                   </div>
 
                   <div className="flex justify-between pt-4">
-                     <Button variant="outline" onClick={() => setStep(s => s - 1)}>Back</Button>
-                     <Button onClick={handleNext}>Next Step</Button>
+                     <Button variant="outline" onClick={() => setStep(s => s - 1)}>{t('common.back')}</Button>
+                     <Button onClick={handleNext}>{t('common.next')}</Button>
                   </div>
                </div>
             )}
 
             {step === 3 && (
                <div className="space-y-4">
-                  <h2 className="text-xl font-bold mb-4">Step 3: Household & Financial</h2>
+                  <h2 className="text-xl font-bold mb-4">{t('onboarding.step_3_title')}</h2>
 
                   <div className="grid grid-cols-2 gap-4">
-                     <Input label="Household Type" as="select" value={formData.householdType || ''} onChange={e => setFormData({ ...formData, householdType: e.target.value })}>
-                        <option value="">Select...</option>
-                        <option>Single Adult</option>
-                        <option>Couple</option>
-                        <option>Family with Children</option>
-                        <option>Multi-generational</option>
+                     <Input label={t('onboarding.household_type')} as="select" value={formData.householdType || ''} onChange={e => setFormData({ ...formData, householdType: e.target.value })}>
+                        <option value="">{t('common.select')}</option>
+                        <option>{t('onboarding.single_adult')}</option>
+                        <option>{t('onboarding.couple')}</option>
+                        <option>{t('onboarding.family_children')}</option>
+                        <option>{t('onboarding.multi_gen')}</option>
                      </Input>
-                     <Input label="Household Size" type="number" value={formData.householdSize || ''} onChange={e => setFormData({ ...formData, householdSize: parseInt(e.target.value) })} />
+                     <Input label={t('onboarding.household_size')} type="number" value={formData.householdSize || ''} onChange={e => setFormData({ ...formData, householdSize: parseInt(e.target.value) })} />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
-                     <label className="flex items-center gap-2 text-sm dark:text-slate-300"><input type="checkbox" checked={formData.hasMinors || false} onChange={e => setFormData({ ...formData, hasMinors: e.target.checked })} /> Household includes minors</label>
-                     <label className="flex items-center gap-2 text-sm dark:text-slate-300"><input type="checkbox" checked={formData.hasSeniors || false} onChange={e => setFormData({ ...formData, hasSeniors: e.target.checked })} /> Household includes seniors</label>
+                     <label className="flex items-center gap-2 text-sm dark:text-slate-300"><input type="checkbox" checked={formData.hasMinors || false} onChange={e => setFormData({ ...formData, hasMinors: e.target.checked })} /> {t('onboarding.includes_minors')}</label>
+                     <label className="flex items-center gap-2 text-sm dark:text-slate-300"><input type="checkbox" checked={formData.hasSeniors || false} onChange={e => setFormData({ ...formData, hasSeniors: e.target.checked })} /> {t('onboarding.includes_seniors')}</label>
                   </div>
 
                   <div className="border-t pt-4">
-                     <Input label="Annual Income Range" as="select" value={formData.incomeRange || ''} onChange={e => setFormData({ ...formData, incomeRange: e.target.value })}>
-                        <option value="">Select...</option>
-                        <option value="0-30k">Under $30,000</option>
-                        <option value="30k-50k">$30,000 - $50,000</option>
-                        <option value="50k-80k">$50,000 - $80,000</option>
-                        <option value="80k+">Over $80,000</option>
+                     <Input label={t('onboarding.income_range')} as="select" value={formData.incomeRange || ''} onChange={e => setFormData({ ...formData, incomeRange: e.target.value })}>
+                        <option value="">{t('common.select')}</option>
+                        <option value="0-30k">{t('onboarding.income_under_30k')}</option>
+                        <option value="30k-50k">{t('onboarding.income_30k_50k')}</option>
+                        <option value="50k-80k">{t('onboarding.income_50k_80k')}</option>
+                        <option value="80k+">{t('onboarding.income_80k_plus')}</option>
                      </Input>
 
                      <div className="mt-2">
-                        <p className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Income Sources (Select all that apply)</p>
+                        <p className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">{t('onboarding.income_sources')}</p>
                         <div className="grid grid-cols-2 gap-2 text-sm">
                            {['Wages', 'Social Security', 'SSI', 'SSDI', 'Pension', 'Unemployment', 'None'].map(src => (
                               <label key={src} className="flex items-center gap-2 dark:text-slate-300">
@@ -457,7 +634,7 @@ const ClientOnboarding: React.FC<{ user: User; onUpdate: (u: Partial<User>) => v
                      </div>
 
                      <div className="mt-4">
-                        <p className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Non-Cash Benefits</p>
+                        <p className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">{t('onboarding.non_cash')}</p>
                         <div className="grid grid-cols-2 gap-2 text-sm">
                            {['SNAP', 'WIC', 'TANF', 'VA Benefits', 'Housing Voucher'].map(ben => (
                               <label key={ben} className="flex items-center gap-2 dark:text-slate-300">
@@ -470,100 +647,111 @@ const ClientOnboarding: React.FC<{ user: User; onUpdate: (u: Partial<User>) => v
                   </div>
 
                   <div className="flex justify-between pt-4">
-                     <Button variant="outline" onClick={() => setStep(s => s - 1)}>Back</Button>
-                     <Button onClick={handleNext}>Next Step</Button>
+                     <Button variant="outline" onClick={() => setStep(s => s - 1)}>{t('common.back')}</Button>
+                     <Button onClick={handleNext}>{t('common.next')}</Button>
                   </div>
                </div>
             )}
 
             {step === 4 && (
                <div className="space-y-4">
-                  <h2 className="text-xl font-bold mb-4">Step 4: Health & Disability</h2>
+                  <h2 className="text-xl font-bold mb-4">{t('onboarding.step_4_title')}</h2>
 
-                  <Input label="Do you have a disability?" as="select" value={formData.disabilityStatus !== undefined ? (formData.disabilityStatus ? 'Yes' : 'No') : ''} onChange={e => setFormData({ ...formData, disabilityStatus: e.target.value === 'Yes' })}>
-                     <option value="">Select...</option>
-                     <option value="Yes">Yes</option>
-                     <option value="No">No</option>
+                  <Input label={t('onboarding.has_disability')} as="select" value={formData.disabilityStatus !== undefined ? (formData.disabilityStatus ? 'Yes' : 'No') : ''} onChange={e => setFormData({ ...formData, disabilityStatus: e.target.value === 'Yes' })}>
+                     <option value="">{t('common.select')}</option>
+                     <option value="Yes">{t('common.yes')}</option>
+                     <option value="No">{t('common.no')}</option>
                   </Input>
 
                   {formData.disabilityStatus && (
                      <div className="space-y-4 pl-4 border-l-2 border-slate-200 dark:border-slate-700">
-                        <Input label="Disability Type (Optional)" placeholder="e.g. Physical, Developmental" value={formData.disabilityType || ''} onChange={e => setFormData({ ...formData, disabilityType: e.target.value })} />
-                        <Input label="Does this affect your ability to live independently?" as="select" value={formData.affectsIndependence !== undefined ? (formData.affectsIndependence ? 'Yes' : 'No') : ''} onChange={e => setFormData({ ...formData, affectsIndependence: e.target.value === 'Yes' })}>
-                           <option value="">Select...</option>
-                           <option value="Yes">Yes</option>
-                           <option value="No">No</option>
+                        <Input label={t('onboarding.disability_type')} placeholder={t('onboarding.disability_placeholder')} value={formData.disabilityType || ''} onChange={e => setFormData({ ...formData, disabilityType: e.target.value })} />
+                        <Input label={t('onboarding.affects_independence')} as="select" value={formData.affectsIndependence !== undefined ? (formData.affectsIndependence ? 'Yes' : 'No') : ''} onChange={e => setFormData({ ...formData, affectsIndependence: e.target.value === 'Yes' })}>
+                           <option value="">{t('common.select')}</option>
+                           <option value="Yes">{t('common.yes')}</option>
+                           <option value="No">{t('common.no')}</option>
                         </Input>
                      </div>
                   )}
 
                   <div className="space-y-3 border-t pt-4">
-                     <h3 className="font-bold text-slate-900 dark:text-white">Functional Needs</h3>
+                     <h3 className="font-bold text-slate-900 dark:text-white">{t('onboarding.functional_needs')}</h3>
                      <div className="grid grid-cols-3 gap-4">
-                        <Input label="Hearing Impaired?" as="select" onChange={e => setFormData({ ...formData, accessibility: { ...(formData.accessibility || { vision: 'Unknown', mobility: "" }), hearing: e.target.value } })}>
-                           <option value="Unknown">Unknown</option><option value="Yes">Yes</option><option value="No">No</option>
+                        <Input label={t('onboarding.hearing_impaired')} as="select" onChange={e => setFormData({ ...formData, accessibility: { ...(formData.accessibility || { vision: 'Unknown', mobility: "" }), hearing: e.target.value } })}>
+                           <option value="Unknown">{t('common.unknown')}</option><option value="Yes">{t('common.yes')}</option><option value="No">{t('common.no')}</option>
                         </Input>
-                        <Input label="Vision Impaired?" as="select" onChange={e => setFormData({ ...formData, accessibility: { ...(formData.accessibility || { hearing: 'Unknown', mobility: "" }), vision: e.target.value } })}>
-                           <option value="Unknown">Unknown</option><option value="Yes">Yes</option><option value="No">No</option>
+                        <Input label={t('onboarding.vision_impaired')} as="select" onChange={e => setFormData({ ...formData, accessibility: { ...(formData.accessibility || { hearing: 'Unknown', mobility: "" }), vision: e.target.value } })}>
+                           <option value="Unknown">{t('common.unknown')}</option><option value="Yes">{t('common.yes')}</option><option value="No">{t('common.no')}</option>
                         </Input>
                      </div>
-                     <Input label="Mobility Needs" as="select" value={formData.accessibility?.mobility || ''} onChange={e => setFormData({ ...formData, accessibility: { ...(formData.accessibility || { hearing: 'Unknown', vision: 'Unknown' }), mobility: e.target.value } })}>
-                        <option value="">None / Unknown</option>
-                        <option value="Walker">Uses Walker</option>
-                        <option value="Wheelchair">Uses Wheelchair</option>
-                        <option value="Stairs difficult">Stairs are difficult</option>
+                     <Input label={t('onboarding.mobility_needs')} as="select" value={formData.accessibility?.mobility || ''} onChange={e => setFormData({ ...formData, accessibility: { ...(formData.accessibility || { hearing: 'Unknown', vision: 'Unknown' }), mobility: e.target.value } })}>
+                        <option value="">{t('common.none')} / {t('common.unknown')}</option>
+                        <option value="Walker">{t('onboarding.walker')}</option>
+                        <option value="Wheelchair">{t('onboarding.wheelchair')}</option>
+                        <option value="Stairs difficult">{t('onboarding.stairs_difficult')}</option>
                      </Input>
                   </div>
 
                   <div className="flex justify-between pt-4">
-                     <Button variant="outline" onClick={() => setStep(s => s - 1)}>Back</Button>
-                     <Button onClick={handleNext}>Next Step</Button>
+                     <Button variant="outline" onClick={() => setStep(s => s - 1)}>{t('common.back')}</Button>
+                     <Button onClick={handleNext}>{t('common.next')}</Button>
                   </div>
                </div>
             )}
 
             {step === 5 && (
                <div className="space-y-4">
-                  <h2 className="text-xl font-bold mb-4">Step 5: Contact & Interests</h2>
+                  <h2 className="text-xl font-bold mb-4">{t('onboarding.step_5_title')}</h2>
 
                   <div className="grid grid-cols-2 gap-4">
-                     <Input label="Phone Number" value={formData.phone || ''} onChange={e => setFormData({ ...formData, phone: e.target.value })} />
-                     <Input label="Email" value={formData.email || ''} onChange={e => setFormData({ ...formData, email: e.target.value })} />
+                     <Input label={t('common.phone')} value={formData.phone || ''} onChange={e => setFormData({ ...formData, phone: e.target.value })} />
+                     <Input label={t('common.email')} value={formData.email || ''} onChange={e => setFormData({ ...formData, email: e.target.value })} />
                   </div>
-                  <Input label="Preferred Contact Method" as="select" value={formData.preferredContactMethod || ''} onChange={e => setFormData({ ...formData, preferredContactMethod: e.target.value as any })}>
-                     <option value="">Select...</option>
-                     <option>Call</option>
-                     <option>Text</option>
-                     <option>Email</option>
+                  <Input label={t('onboarding.preferred_contact')} as="select" value={formData.preferredContactMethod || ''} onChange={e => setFormData({ ...formData, preferredContactMethod: e.target.value as any })}>
+                     <option value="">{t('common.select')}</option>
+                     <option value="Call">{t('onboarding.contact_call')}</option>
+                     <option value="Text">{t('onboarding.contact_text')}</option>
+                     <option value="Email">{t('onboarding.contact_email')}</option>
                   </Input>
 
-                  <h3 className="font-bold text-slate-700 dark:text-slate-300 pt-2">Emergency Contact</h3>
+                  <h3 className="font-bold text-slate-700 dark:text-slate-300 pt-2">{t('onboarding.emergency_contact')}</h3>
                   <div className="grid grid-cols-2 gap-4">
-                     <Input label="Name" value={formData.emergencyContact?.name || ''} onChange={e => setFormData({ ...formData, emergencyContact: { ...(formData.emergencyContact || { phone: '', relation: '' }), name: e.target.value } })} />
-                     <Input label="Phone" value={formData.emergencyContact?.phone || ''} onChange={e => setFormData({ ...formData, emergencyContact: { ...(formData.emergencyContact || { name: '', relation: '' }), phone: e.target.value } })} />
+                     <Input label={t('common.name')} value={formData.emergencyContact?.name || ''} onChange={e => setFormData({ ...formData, emergencyContact: { ...(formData.emergencyContact || { phone: '', relation: '' }), name: e.target.value } })} />
+                     <Input label={t('common.phone')} value={formData.emergencyContact?.phone || ''} onChange={e => setFormData({ ...formData, emergencyContact: { ...(formData.emergencyContact || { name: '', relation: '' }), phone: e.target.value } })} />
                   </div>
-                  <Input label="Relationship" value={formData.emergencyContact?.relation || ''} onChange={e => setFormData({ ...formData, emergencyContact: { ...(formData.emergencyContact || { name: '', phone: '' }), relation: e.target.value } })} />
+                  <Input label={t('onboarding.relationship')} value={formData.emergencyContact?.relation || ''} onChange={e => setFormData({ ...formData, emergencyContact: { ...(formData.emergencyContact || { name: '', phone: '' }), relation: e.target.value } })} />
 
                   <div className="space-y-2 border-t pt-4">
-                     <label className="font-medium text-slate-700 dark:text-slate-300">Pets</label>
-                     <Input label="Pet Details" placeholder="e.g., 1 Friendly Dog named Spot" value={formData.pets || ''} onChange={e => setFormData({ ...formData, pets: e.target.value })} />
+                     <label className="font-medium text-slate-700 dark:text-slate-300">{t('onboarding.pets')}</label>
+                     <Input label={t('onboarding.pet_details')} placeholder={t('onboarding.pet_placeholder')} value={formData.pets || ''} onChange={e => setFormData({ ...formData, pets: e.target.value })} />
                   </div>
-                  <Input label="Hobbies & Interests" as="textarea" value={formData.hobbies?.join(', ') || ''} onChange={e => setFormData({ ...formData, hobbies: e.target.value.split(', ') })} />
+                  <Input label={t('onboarding.hobbies')} as="textarea" value={formData.hobbies?.join(', ') || ''} onChange={e => setFormData({ ...formData, hobbies: e.target.value.split(', ') })} />
 
-                  <Input label="How did you hear about us? (Referral)" value={formData.referralSource || ''} onChange={e => setFormData({ ...formData, referralSource: e.target.value })} />
+
 
                   <div className="flex justify-between pt-6">
-                     <Button variant="outline" onClick={() => setStep(s => s - 1)}>Back</Button>
-                     <Button variant="success" onClick={handleFinish}>Complete Profile</Button>
+                     <Button variant="outline" onClick={() => setStep(s => s - 1)}>{t('common.back')}</Button>
+                     <Button onClick={handleNext}>{t('common.next')}</Button>
                   </div>
                </div>
+            )}
+
+            {step === 6 && (
+               <WaiverForm
+                  onAcknowledge={(sig) => {
+                     setFormData(prev => ({ ...prev, signature: sig, waiverAcceptedDate: new Date().toISOString().split('T')[0] }));
+                     handleFinish();
+                  }}
+                  onBack={() => setStep(5)}
+               />
             )}
          </Card>
       </div>
    );
 };
 
-const RequestCard: React.FC<{ request: Request }> = ({ request }) => {
+const RequestCard: React.FC<{ request: Request; onEdit?: (req: Request) => void; onCancel?: (id: string) => void }> = ({ request, onEdit, onCancel }) => {
+   const { t } = useTheme();
    // Mock lookup for volunteer hobbies if matched
    const volunteer = Object.values(MOCK_USERS).find(u => u.id === request.volunteerId);
 
@@ -571,8 +759,8 @@ const RequestCard: React.FC<{ request: Request }> = ({ request }) => {
       <Card className="relative border-l-4 border-l-brand-500 dark:bg-slate-900">
          <div className="flex justify-between items-start mb-4">
             <div>
-               <h4 className="font-bold text-lg text-slate-900 dark:text-white">{request.category}</h4>
-               <p className="text-slate-500 dark:text-slate-300 text-sm">{request.subcategory}</p>
+               <h4 className="font-bold text-lg text-slate-900 dark:text-white">{t(`category.${request.category}`) || request.category}</h4>
+               <p className="text-slate-500 dark:text-slate-300 text-sm">{t(`subcategory.${request.subcategory}`) || request.subcategory}</p>
             </div>
             <StatusBadge status={request.status} />
          </div>
@@ -584,43 +772,323 @@ const RequestCard: React.FC<{ request: Request }> = ({ request }) => {
             </div>
             <div className="flex items-center">
                <MapPin className="w-4 h-4 mr-2 text-slate-400 dark:text-slate-500" />
-               <span>{request.category === RequestCategory.RIDE ? `To: ${request.destinationAddress || 'Destination'}` : request.location}</span>
+               <span>{request.category === RequestCategory.RIDE ? `${t('client.to')} ${request.destinationAddress || 'Destination'}` : request.location}</span>
             </div>
             {request.volunteerName ? (
                <div className="bg-green-50 dark:bg-green-900/30 rounded-md text-green-800 dark:text-green-300 border border-green-100 dark:border-green-800 mt-2">
                   <div className="flex items-center p-3">
                      <CheckCircle className="w-5 h-5 mr-2" />
                      <div>
-                        <p className="font-bold text-xs uppercase">Your Volunteer</p>
-                        <span className="font-medium">{request.volunteerName}</span>
+                        <p className="font-bold text-xs uppercase">{t('client.your_volunteer')}</p>
+                        <span className="font-medium">{volunteer?.preferredName || request.volunteerName}</span>
                      </div>
                   </div>
                   {/* Display Volunteer Hobbies */}
                   {volunteer && volunteer.hobbies && (
                      <div className="px-3 pb-3 pt-0 text-xs border-t border-green-100 dark:border-green-800 mt-2">
-                        <p className="font-bold mt-2 text-green-700 dark:text-green-300 flex items-center gap-1"><Heart size={10} /> Hobbies:</p>
+                        <p className="font-bold mt-2 text-green-700 dark:text-green-300 flex items-center gap-1"><Heart size={10} /> {t('client.hobbies')}</p>
                         <p>{volunteer.hobbies.join(', ')}</p>
                      </div>
                   )}
                </div>
             ) : (
                <div className="flex items-center p-2 bg-amber-50 dark:bg-amber-900/30 rounded-md text-amber-800 dark:text-amber-300 border border-amber-100 dark:border-amber-800 mt-2 text-xs">
-                  Looking for a neighbor to help...
+                  {t('client.looking_neighbor')}
+               </div>
+            )}
+
+            {/* Group Event Enrollment Status */}
+            {request.isGroupEvent && (
+               <div className="flex items-center gap-2 mt-3 px-3 py-2 bg-brand-50 dark:bg-slate-800 rounded-lg border border-brand-100 dark:border-slate-700">
+                  <Users size={16} className="text-brand-600 dark:text-yellow-400" />
+                  <div className="flex flex-col">
+                     <span className="font-bold text-slate-900 dark:text-white leading-none">
+                        {t('client.group_enrollment')} {request.enrolledVolunteers?.length || 0} / {request.maxVolunteers || 0}
+                     </span>
+                     <span className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        {request.maxVolunteers && (request.maxVolunteers - (request.enrolledVolunteers?.length || 0) > 0) ? (
+                           <>({request.maxVolunteers - (request.enrolledVolunteers?.length || 0)} {t('client.spots_remaining')})</>
+                        ) : (
+                           <span className="text-orange-600 dark:text-orange-400 font-medium">{t('client.full')}</span>
+                        )}
+                     </span>
+                  </div>
                </div>
             )}
          </div>
 
          <div className="flex space-x-3">
-            <Button size="sm" variant="outline" className="flex-1">Edit</Button>
-            {request.status === RequestStatus.PENDING && (
-               <Button size="sm" variant="danger" className="flex-1">Cancel</Button>
+            <Button
+               size="sm"
+               variant="outline"
+               className="flex-1"
+               onClick={() => onEdit?.(request)}
+            >
+               {t('common.edit')}
+            </Button>
+            {(request.status === RequestStatus.PENDING || request.status === RequestStatus.MATCHED) && (
+               <Button
+                  size="sm"
+                  variant="danger"
+                  className="flex-1"
+                  onClick={() => onCancel?.(request.id)}
+               >
+                  {t('common.cancel')}
+               </Button>
+            )}
+            {request.status === RequestStatus.MATCHED && (
+               <Button size="sm" variant="secondary" className="pl-2 pr-2" onClick={() => downloadICS(request)} title="Add to Calendar">
+                  <Calendar size={16} />
+               </Button>
             )}
          </div>
       </Card>
    );
 };
 
+// Edit Request Modal Component - Enhanced to allow editing all fields
+const EditRequestModal: React.FC<{ request: Request; onClose: () => void; onSave: (data: Partial<Request>) => void }> = ({ request, onClose, onSave }) => {
+   const { t } = useTheme();
+
+   // Initialize state with current request values
+   const [category, setCategory] = useState(request.category);
+   const [subcategory, setSubcategory] = useState(request.subcategory || '');
+   const [isFlexible, setIsFlexible] = useState(request.isFlexible || false);
+   const [date, setDate] = useState(request.date || '');
+   const [timeWindow, setTimeWindow] = useState(request.timeWindow || request.appointmentTime || '');
+   const [flexStartDate, setFlexStartDate] = useState(request.flexStartDate || '');
+   const [flexEndDate, setFlexEndDate] = useState(request.flexEndDate || '');
+   const [flexTimes, setFlexTimes] = useState(request.flexTimes || '');
+   const [description, setDescription] = useState(request.description || '');
+
+   // Address fields
+   const [location, setLocation] = useState(request.location || '');
+   const [pickupAddress, setPickupAddress] = useState(request.pickupAddress || '');
+   const [destinationAddress, setDestinationAddress] = useState(request.destinationAddress || '');
+
+   // Group event fields
+   const [isGroupEvent, setIsGroupEvent] = useState(request.isGroupEvent || false);
+   const [maxVolunteers, setMaxVolunteers] = useState(request.maxVolunteers || 2);
+
+   const SUBCATEGORY_OPTIONS: Record<string, string[]> = {
+      [RequestCategory.RIDE]: ['Medical Appointment', 'Work/Job Interview', 'Social Event', 'Errand Run', 'Other'],
+      [RequestCategory.SHOPPING]: ['Grocery Shopping', 'Post Office Run', 'Library Drop-off', 'Donation Drop-off', 'Other'],
+      [RequestCategory.HOME_HELP]: ['Light Bulb Replacement', 'Smoke Alarm Battery', 'Moving Furniture/Boxes', 'Safety Check', 'Holiday Decoration', 'Garden/Yard Help', 'Other'],
+      [RequestCategory.SOCIAL]: ['Friendly Visit', 'Phone Check-in', 'Walk Companion', 'Game/Activity Buddy', 'Reading Helper', 'Other'],
+   };
+
+   const handleSave = () => {
+      const updates: Partial<Request> = {
+         category,
+         subcategory,
+         description,
+         isFlexible,
+         isGroupEvent,
+      };
+
+      // Date/time handling
+      if (isFlexible) {
+         updates.flexStartDate = flexStartDate;
+         updates.flexEndDate = flexEndDate;
+         updates.flexTimes = flexTimes;
+         updates.date = flexStartDate; // Use start date as primary
+      } else {
+         updates.date = date;
+         updates.timeWindow = timeWindow;
+         updates.appointmentTime = timeWindow;
+      }
+
+      // Address handling based on category
+      if (category === RequestCategory.RIDE) {
+         updates.pickupAddress = pickupAddress;
+         updates.destinationAddress = destinationAddress;
+         updates.location = destinationAddress; // Use destination as location
+      } else {
+         updates.location = location;
+      }
+
+      // Group event handling
+      if (isGroupEvent) {
+         updates.maxVolunteers = maxVolunteers;
+      }
+
+      onSave(updates);
+   };
+
+   return (
+      <Modal isOpen={true} onClose={onClose} title={`${t('client.edit_title')}${request.id}`}>
+         <div className="space-y-4 max-h-[70vh] overflow-y-auto">
+            {/* Category & Subcategory */}
+            <div className="space-y-3">
+               <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                     {t('common.category')}
+                  </label>
+                  <select
+                     className="w-full px-4 py-2 rounded-lg border border-slate-300 bg-white dark:bg-black dark:border-slate-600 dark:text-white"
+                     value={category}
+                     aria-label={t('common.category')}
+                     onChange={(e) => {
+                        setCategory(e.target.value as RequestCategory);
+                        setSubcategory(''); // Reset subcategory when category changes
+                     }}
+                  >
+                     {Object.values(RequestCategory).map(cat => (
+                        <option key={cat} value={cat}>{t(`category.${cat}`) || cat}</option>
+                     ))}
+                  </select>
+               </div>
+
+               {category !== RequestCategory.OTHER && (
+                  <div>
+                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                        {t('common.subcategory')}
+                     </label>
+                     <select
+                        className="w-full px-4 py-2 rounded-lg border border-slate-300 bg-white dark:bg-black dark:border-slate-600 dark:text-white"
+                        value={subcategory}
+                        aria-label={t('common.subcategory')}
+                        onChange={(e) => setSubcategory(e.target.value)}
+                     >
+                        <option value="">{t('common.select')}</option>
+                        {SUBCATEGORY_OPTIONS[category]?.map(opt => (
+                           <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                     </select>
+                  </div>
+               )}
+            </div>
+
+            {/* Flexible Schedule Toggle */}
+            <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-900 rounded-lg">
+               <input
+                  type="checkbox"
+                  id="editIsFlexible"
+                  className="w-5 h-5 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                  checked={isFlexible}
+                  onChange={(e) => setIsFlexible(e.target.checked)}
+               />
+               <label htmlFor="editIsFlexible" className="font-medium text-slate-900 dark:text-white cursor-pointer select-none">
+                  {t('request.is_flexible')}
+               </label>
+            </div>
+
+            {/* Date/Time Fields */}
+            {isFlexible ? (
+               <div className="space-y-3">
+                  <Input
+                     label={t('request.flex_start')}
+                     type="date"
+                     value={flexStartDate}
+                     onChange={(e) => setFlexStartDate(e.target.value)}
+                  />
+                  <Input
+                     label={t('request.flex_end')}
+                     type="date"
+                     value={flexEndDate}
+                     onChange={(e) => setFlexEndDate(e.target.value)}
+                  />
+                  <Input
+                     label={t('request.flex_times')}
+                     placeholder={t('request.flex_placeholder')}
+                     value={flexTimes}
+                     onChange={(e) => setFlexTimes(e.target.value)}
+                  />
+               </div>
+            ) : (
+               <div className="grid grid-cols-2 gap-3">
+                  <Input
+                     label={t('common.date')}
+                     type="date"
+                     value={date}
+                     onChange={(e) => setDate(e.target.value)}
+                  />
+                  <Input
+                     label={t('common.time')}
+                     type="time"
+                     value={timeWindow}
+                     onChange={(e) => setTimeWindow(e.target.value)}
+                  />
+               </div>
+            )}
+
+            {/* Address Fields - Different for Rides vs Others */}
+            {category === RequestCategory.RIDE ? (
+               <div className="space-y-3">
+                  <Input
+                     label={t('request.pickup_address')}
+                     value={pickupAddress}
+                     onChange={(e) => setPickupAddress(e.target.value)}
+                     placeholder={t('request.pickup_placeholder')}
+                  />
+                  <Input
+                     label={t('request.dest_address')}
+                     value={destinationAddress}
+                     onChange={(e) => setDestinationAddress(e.target.value)}
+                     placeholder={t('request.dest_placeholder')}
+                  />
+               </div>
+            ) : (
+               <Input
+                  label={t('request.service_address')}
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder={t('request.service_placeholder')}
+               />
+            )}
+
+            {/* Group Event Toggle */}
+            <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-lg space-y-3">
+               <div className="flex items-center gap-3">
+                  <input
+                     type="checkbox"
+                     id="editGroupEvent"
+                     className="w-5 h-5 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                     checked={isGroupEvent}
+                     onChange={(e) => setIsGroupEvent(e.target.checked)}
+                  />
+                  <label htmlFor="editGroupEvent" className="font-medium text-slate-900 dark:text-white cursor-pointer select-none">
+                     {t('request.is_group')}
+                  </label>
+               </div>
+               {isGroupEvent && (
+                  <Input
+                     label={t('request.volunteers_needed')}
+                     type="number"
+                     min={2}
+                     max={20}
+                     value={maxVolunteers}
+                     onChange={(e) => setMaxVolunteers(parseInt(e.target.value))}
+                  />
+               )}
+            </div>
+
+            {/* Description */}
+            <Input
+               label={t('common.description')}
+               as="textarea"
+               rows={3}
+               value={description}
+               onChange={(e) => setDescription(e.target.value)}
+               placeholder={t('client.time_placeholder')}
+            />
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+               <Button variant="outline" onClick={onClose} className="flex-1">
+                  {t('common.cancel')}
+               </Button>
+               <Button onClick={handleSave} className="flex-1">
+                  {t('common.save')}
+               </Button>
+            </div>
+         </div>
+      </Modal>
+   );
+};
+
 export const CreateRequestFlow: React.FC<{ onSubmit: (data: Partial<Request>) => void; onCancel: () => void }> = ({ onSubmit, onCancel }) => {
+   const { t } = useTheme();
    // ... content largely the same, but Card and Inputs handle themselves. 
    // We just need to check for hardcoded text colors.
    // I'll update the component structure to include dark mode classes where needed.
@@ -645,16 +1113,16 @@ export const CreateRequestFlow: React.FC<{ onSubmit: (data: Partial<Request>) =>
    return (
       <div className="max-w-2xl mx-auto py-8">
          <div className="mb-6 flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">New Request</h1>
-            <Button variant="outline" size="sm" onClick={onCancel}>Cancel</Button>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{t('request.new_title')}</h1>
+            <Button variant="outline" size="sm" onClick={onCancel}>{t('common.cancel')}</Button>
          </div>
 
-         <ProgressBar current={step} total={3} labels={['Category', 'Details', 'Review']} />
+         <ProgressBar current={step} total={3} labels={[t('common.category'), t('common.description'), t('common.save')]} />
 
          <Card>
             {step === 1 && (
                <div className="space-y-6">
-                  <h2 className="text-xl font-bold">What do you need help with?</h2>
+                  <h2 className="text-xl font-bold">{t('request.category_title')}</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                      {categories.map(cat => (
                         <div
@@ -663,7 +1131,7 @@ export const CreateRequestFlow: React.FC<{ onSubmit: (data: Partial<Request>) =>
                            className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${data.category === cat ? 'border-brand-500 bg-brand-50 dark:bg-slate-800 dark:border-yellow-400' : 'border-slate-200 dark:border-slate-700 hover:border-brand-200'}`}
                         >
                            <h3 className="font-bold text-slate-900 dark:text-white">{cat}</h3>
-                           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Select for {cat.toLowerCase()} assistance.</p>
+                           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{t('request.assist_desc')}</p>
                         </div>
                      ))}
                   </div>
@@ -671,26 +1139,27 @@ export const CreateRequestFlow: React.FC<{ onSubmit: (data: Partial<Request>) =>
                   <div className="mt-4">
                      {data.category !== RequestCategory.OTHER ? (
                         <>
-                           <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Type of Errand / Task (Subcategory)</label>
+                           <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('request.subcategory_label')}</label>
                            <select
                               className="w-full px-4 py-2 rounded-lg border border-slate-300 bg-white dark:bg-black dark:border-slate-600 dark:text-white"
                               value={data.subcategory || ''}
+                              aria-label={t('request.subcategory_label')}
                               onChange={e => setData({ ...data, subcategory: e.target.value })}
                            >
-                              <option value="">Select...</option>
+                              <option value="">{t('common.select')}</option>
                               {SUBCATEGORY_OPTIONS[data.category || '']?.map(opt => (
                                  <option key={opt} value={opt}>{opt}</option>
                               ))}
                            </select>
-                           <p className="text-xs text-slate-500 mt-1">Choose the specific task type from the list.</p>
+                           <p className="text-xs text-slate-500 mt-1">{t('request.subcategory_desc')}</p>
                         </>
                      ) : (
-                        <p className="text-sm text-slate-500 italic">No subcategories for "Other". Please describe your request in the next step.</p>
+                        <p className="text-sm text-slate-500 italic">{t('request.other_desc')}</p>
                      )}
                   </div>
 
                   <div className="flex justify-end pt-4">
-                     <Button onClick={handleNext}>Next Step <ChevronRight size={16} className="ml-2" /></Button>
+                     <Button onClick={handleNext}>{t('common.next')} <ChevronRight size={16} className="ml-2" /></Button>
                   </div>
                </div>
             )}
@@ -698,7 +1167,7 @@ export const CreateRequestFlow: React.FC<{ onSubmit: (data: Partial<Request>) =>
             {/* Step 2 and 3 omitted for brevity but would follow same pattern. */}
             {step === 2 && (
                <div className="space-y-4">
-                  <h2 className="text-xl font-bold">Request Details</h2>
+                  <h2 className="text-xl font-bold">{t('request.details_title')}</h2>
 
                   <div className="bg-white dark:bg-black border border-slate-200 dark:border-slate-800 p-4 rounded-lg space-y-4">
                      <div className="flex items-center gap-3 mb-2">
@@ -710,22 +1179,22 @@ export const CreateRequestFlow: React.FC<{ onSubmit: (data: Partial<Request>) =>
                            onChange={e => setData({ ...data, isFlexible: e.target.checked })}
                         />
                         <label htmlFor="isFlexible" className="font-medium text-slate-900 dark:text-white cursor-pointer select-none">
-                           Is the date/time variable?
+                           {t('request.is_flexible')}
                         </label>
                      </div>
 
                      {data.isFlexible ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in">
-                           <Input label="Start Date Range" type="date" value={data.flexStartDate || ''} onChange={e => setData({ ...data, flexStartDate: e.target.value })} />
-                           <Input label="End Date Range" type="date" value={data.flexEndDate || ''} onChange={e => setData({ ...data, flexEndDate: e.target.value })} />
+                           <Input label={t('request.start_date')} type="date" value={data.flexStartDate || ''} onChange={e => setData({ ...data, flexStartDate: e.target.value })} />
+                           <Input label={t('request.end_date')} type="date" value={data.flexEndDate || ''} onChange={e => setData({ ...data, flexEndDate: e.target.value })} />
                            <div className="md:col-span-2">
-                              <Input label="Preferred Times / Range" placeholder="e.g. Mon-Wed Afternoons, or Any day 9am-12pm" value={data.flexTimes || ''} onChange={e => setData({ ...data, flexTimes: e.target.value })} />
+                              <Input label={t('request.preferred_times')} placeholder={t('request.preferred_times_placeholder')} value={data.flexTimes || ''} onChange={e => setData({ ...data, flexTimes: e.target.value })} />
                            </div>
                         </div>
                      ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in">
-                           <Input label="Date Needed" type="date" value={data.date || ''} onChange={e => setData({ ...data, date: e.target.value })} />
-                           <Input label="Time Needed" type="time" value={data.timeWindow || ''} onChange={e => setData({ ...data, timeWindow: e.target.value })} />
+                           <Input label={t('request.date_needed')} type="date" value={data.date || ''} onChange={e => setData({ ...data, date: e.target.value })} />
+                           <Input label={t('request.time_needed')} type="time" value={data.timeWindow || ''} onChange={e => setData({ ...data, timeWindow: e.target.value })} />
                         </div>
                      )}
                   </div>
@@ -733,32 +1202,32 @@ export const CreateRequestFlow: React.FC<{ onSubmit: (data: Partial<Request>) =>
                   {data.category === RequestCategory.RIDE ? (
                      <div className="space-y-4 pt-2">
                         <Input
-                           label="Pickup Address"
+                           label={t('request.pickup_address')}
                            value={data.pickupAddress || '123 Main St, North Plains (Home)'}
                            onChange={e => setData({ ...data, pickupAddress: e.target.value })}
-                           placeholder="Enter pickup location"
+                           placeholder={t('request.pickup_address_placeholder')}
                         />
                         <Input
-                           label="Destination Address"
+                           label={t('request.destination_address')}
                            value={data.destinationAddress || ''}
                            onChange={e => setData({ ...data, destinationAddress: e.target.value })}
-                           placeholder="e.g. 500 N 10th Ave, Hillsboro (Clinic)"
+                           placeholder={t('request.destination_address_placeholder')}
                         />
-                        <p className="text-xs text-slate-500">Volunteers will see exact addresses only after accepting.</p>
+                        <p className="text-xs text-slate-500">{t('request.address_privacy_note')}</p>
                      </div>
                   ) : data.category === RequestCategory.OTHER ? (
                      <Input
-                        label="Address / Location"
+                        label={t('request.address_location')}
                         value={data.location || ''}
                         onChange={e => setData({ ...data, location: e.target.value })}
-                        placeholder="Enter the specific address for this request"
+                        placeholder={t('request.address_location_placeholder')}
                      />
                   ) : (
                      <Input
-                        label="Service Address"
+                        label={t('request.service_address')}
                         value={data.location || ''}
                         onChange={e => setData({ ...data, location: e.target.value })}
-                        placeholder="e.g. 123 Main St, North Plains"
+                        placeholder={t('request.service_address_placeholder')}
                      />
                   )}
 
@@ -772,11 +1241,11 @@ export const CreateRequestFlow: React.FC<{ onSubmit: (data: Partial<Request>) =>
                            onChange={e => setData({ ...data, isGroupEvent: e.target.checked, maxVolunteers: e.target.checked ? 2 : 1 })}
                         />
                         <label htmlFor="groupEvent" className="font-medium text-slate-900 dark:text-white cursor-pointer select-none flex items-center gap-2">
-                           Is this a group event?
+                           {t('request.is_group_event')}
                            <div className="relative group">
                               <HelpCircle size={16} className="text-slate-400 cursor-help" />
                               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-slate-900 text-white text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-                                 Group events allow multiple volunteers to sign up for a single large task (e.g., yard cleanup, moving help). Enables tracking of spots filled vs. needed.
+                                 {t('request.group_event_help')}
                               </div>
                            </div>
                         </label>
@@ -784,51 +1253,61 @@ export const CreateRequestFlow: React.FC<{ onSubmit: (data: Partial<Request>) =>
                      {data.isGroupEvent && (
                         <div className="mt-3 animate-in fade-in slide-in-from-top-2">
                            <Input
-                              label="How many volunteers are needed?"
+                              label={t('request.volunteers_needed')}
                               type="number"
                               min={2}
                               max={20}
                               value={data.maxVolunteers || 2}
                               onChange={e => setData({ ...data, maxVolunteers: parseInt(e.target.value) })}
                            />
-                           <p className="text-xs text-slate-500">Multiple volunteers will be able to sign up for this request.</p>
+                           <p className="text-xs text-slate-500">{t('request.group_event_desc')}</p>
                         </div>
                      )}
                   </div>
 
                   <Input
-                     label="Description / Additional Details"
+                     label={t('request.description')}
                      as="textarea"
                      rows={3}
-                     placeholder="Please provide more details about what you need..."
+                     placeholder={t('request.description_placeholder')}
                      value={data.description || ''}
                      onChange={e => setData({ ...data, description: e.target.value })}
                   />
                   <div className="flex justify-between pt-4">
-                     <Button variant="outline" onClick={handleBack}><ChevronLeft size={16} className="mr-2" /> Back</Button>
-                     <Button onClick={handleNext}>Review <ChevronRight size={16} className="ml-2" /></Button>
+                     <Button variant="outline" onClick={handleBack}><ChevronLeft size={16} className="mr-2" /> {t('common.back')}</Button>
+                     <Button onClick={handleNext}>{t('common.review')} <ChevronRight size={16} className="ml-2" /></Button>
                   </div>
                </div>
             )}
             {step === 3 && (
                <div className="space-y-6">
-                  <h2 className="text-xl font-bold">Review Request</h2>
+                  <h2 className="text-xl font-bold">{t('request.review_title')}</h2>
                   <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg space-y-3 text-sm text-slate-700 dark:text-slate-300">
-                     <p><span className="font-bold">Category:</span> {data.category}</p>
-                     <p><span className="font-bold">Task:</span> {data.subcategory}</p>
-                     <p><span className="font-bold">Date:</span> {data.date}</p>
+                     <p><span className="font-bold">{t('common.category')}:</span> {data.category}</p>
+                     <p><span className="font-bold">{t('request.task')}:</span> {data.subcategory}</p>
+                     <p><span className="font-bold">{t('common.date')}:</span> {data.date || `${data.flexStartDate} - ${data.flexEndDate}`}</p>
                      {data.category === RequestCategory.RIDE ? (
                         <>
-                           <p><span className="font-bold">Pickup:</span> {data.pickupAddress || 'Home'}</p>
-                           <p><span className="font-bold">Destination:</span> {data.destinationAddress}</p>
+                           <p><span className="font-bold">{t('request.pickup')}:</span> {data.pickupAddress || t('request.home')}</p>
+                           <p><span className="font-bold">{t('request.destination')}:</span> {data.destinationAddress}</p>
                         </>
                      ) : (
-                        <p><span className="font-bold">Location:</span> {data.location}</p>
+                        <p><span className="font-bold">{t('common.location')}:</span> {data.location}</p>
                      )}
                   </div>
                   <div className="flex justify-between pt-4">
-                     <Button variant="outline" onClick={handleBack}>Back</Button>
-                     <Button variant="success" onClick={() => onSubmit(data)} className="px-8">Submit Request</Button>
+                     <Button variant="outline" onClick={handleBack}>{t('common.back')}</Button>
+                     <Button variant="success" onClick={() => {
+                        const finalData = { ...data };
+                        // Flag for admin review if "Other" category or subcategory is selected
+                        if (finalData.category === RequestCategory.OTHER || finalData.subcategory === 'Other') {
+                           finalData.adminReviewRequired = true;
+                           finalData.adminReviewReason = finalData.category === RequestCategory.OTHER
+                              ? 'Other category selected - requires admin review to ensure service is appropriate'
+                              : 'Other subcategory selected - requires admin review';
+                        }
+                        onSubmit(finalData);
+                     }} className="px-8">{t('request.submit')}</Button>
                   </div>
                </div>
             )}
@@ -838,103 +1317,231 @@ export const CreateRequestFlow: React.FC<{ onSubmit: (data: Partial<Request>) =>
 };
 
 export const PostServiceSurvey: React.FC<{ request: Request; onSubmit: (data: any) => void }> = ({ request, onSubmit }) => {
-   const [status, setStatus] = useState<'COMPLETED' | 'NO_SHOW' | 'UNABLE'>('COMPLETED');
+   const { t } = useTheme();
+   const [step, setStep] = useState<'INITIAL' | 'COMPLETED' | 'NO_SHOW' | 'UNABLE'>('INITIAL');
    const [rating, setRating] = useState(0);
    const [onTime, setOnTime] = useState('');
    const [safe, setSafe] = useState('');
    const [comments, setComments] = useState('');
 
+   const handleSubmit = (status: string) => {
+      onSubmit({ status, rating, onTime, safe, comments });
+   };
+
    return (
-      <Modal isOpen={true} onClose={() => { }} title="Service Confirmation" hideCloseButton={true}>
-         <div className="space-y-6">
-            <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg border border-slate-200 dark:border-slate-700 text-sm dark:text-slate-200">
-               <h4 className="font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase text-xs tracking-wide">Request Details</h4>
-               <p><span className="font-semibold">Service:</span> {request.category} - {request.subcategory}</p>
-               <p><span className="font-semibold">Date:</span> {request.date}</p>
-               {request.category === 'Ride' ? (
-                  <p><span className="font-semibold">Time:</span> {request.pickupTime} (Pickup)</p>
-               ) : (
-                  <p><span className="font-semibold">Time:</span> {request.timeWindow}</p>
-               )}
-               <p><span className="font-semibold">Volunteer:</span> {request.volunteerName || 'Unassigned'}</p>
-            </div>
+      <Modal isOpen={true} onClose={() => { }} title={t('survey.title')} hideCloseButton={true} customStyle={{ width: '90vw', maxWidth: '1200px' }}>
+         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-6">
+               <div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 text-sm dark:text-slate-200 shadow-sm">
+                  <h4 className="font-bold text-slate-700 dark:text-slate-300 mb-4 uppercase text-xs tracking-wide border-b pb-2">{t('survey.request_details')}</h4>
 
-            <h3 className="font-bold text-lg text-center dark:text-white">Was the request completed?</h3>
-            <div className="flex flex-col gap-2">
-               <button
-                  onClick={() => setStatus('COMPLETED')}
-                  className={`p-3 rounded border text-left flex items-center justify-between transition-all ${status === 'COMPLETED' ? 'bg-green-50 dark:bg-green-900/30 border-green-500 ring-1 ring-green-500 text-green-900 dark:text-white' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'}`}
-               >
-                  <span>Yes, it was completed</span>
-                  {status === 'COMPLETED' && <CheckCircle className="text-green-600" size={18} />}
-               </button>
-               <button
-                  onClick={() => setStatus('NO_SHOW')}
-                  className={`p-3 rounded border text-left flex items-center justify-between transition-all ${status === 'NO_SHOW' ? 'bg-rose-50 dark:bg-rose-900/30 border-rose-500 ring-1 ring-rose-500 text-rose-900 dark:text-white' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'}`}
-               >
-                  <span>No, the volunteer did not show up</span>
-               </button>
-               <button
-                  onClick={() => setStatus('UNABLE')}
-                  className={`p-3 rounded border text-left flex items-center justify-between transition-all ${status === 'UNABLE' ? 'bg-amber-50 dark:bg-amber-900/30 border-amber-500 ring-1 ring-amber-500 text-amber-900 dark:text-white' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'}`}
-               >
-                  <span>No, they were unable to complete it</span>
-               </button>
-            </div>
+                  <div className="space-y-3">
+                     <div>
+                        <span className="block text-xs font-bold text-slate-400 uppercase">{t('common.service')}</span>
+                        <span className="text-lg font-medium text-slate-900 dark:text-white">{t(`category.${request.category}`) || request.category} - {t(`subcategory.${request.subcategory}`) || request.subcategory}</span>
+                     </div>
 
-            {/* Questions visible only if Completed */}
-            {status === 'COMPLETED' && (
-               <div className="space-y-4 animate-in fade-in slide-in-from-top-2 border-t pt-4 dark:border-slate-700">
-                  <div>
-                     <p className="font-bold text-slate-900 dark:text-white mb-2">Did the volunteer arrive on time?</p>
-                     <div className="flex gap-4">
-                        <label className="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-slate-50 dark:hover:bg-slate-800 dark:text-white">
-                           <input type="radio" name="ontime" value="Yes" onChange={(e) => setOnTime(e.target.value)} /> Yes
-                        </label>
-                        <label className="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-slate-50 dark:hover:bg-slate-800 dark:text-white">
-                           <input type="radio" name="ontime" value="No" onChange={(e) => setOnTime(e.target.value)} /> No
-                        </label>
+                     <div className="grid grid-cols-2 gap-4">
+                        <div>
+                           <span className="block text-xs font-bold text-slate-400 uppercase">{t('common.date')}</span>
+                           <span className="font-medium text-slate-700 dark:text-slate-300">{request.date}</span>
+                        </div>
+                        <div>
+                           <span className="block text-xs font-bold text-slate-400 uppercase">{t('common.time')}</span>
+                           <span className="font-medium text-slate-700 dark:text-slate-300">
+                              {request.category === 'Ride' ? `${request.pickupTime} (${t('request.pickup')})` : request.timeWindow}
+                           </span>
+                        </div>
+                     </div>
+
+                     <div>
+                        <span className="block text-xs font-bold text-slate-400 uppercase">{t('common.volunteer')}</span>
+                        <div className="flex items-center gap-2 mt-1">
+                           <div className="w-8 h-8 rounded-full bg-brand-100 dark:bg-brand-900 flex items-center justify-center text-brand-700 dark:text-brand-300 font-bold">
+                              {request.volunteerName ? request.volunteerName.charAt(0) : '?'}
+                           </div>
+                           <span className="font-medium text-slate-900 dark:text-white">{request.volunteerName || t('common.unassigned')}</span>
+                        </div>
                      </div>
                   </div>
+               </div>
+            </div>
 
-                  <div>
-                     <p className="font-bold text-slate-900 dark:text-white mb-2">Did you feel safe and comfortable?</p>
-                     <div className="flex gap-4">
-                        <label className="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-slate-50 dark:hover:bg-slate-800 dark:text-white">
-                           <input type="radio" name="safe" value="Yes" onChange={(e) => setSafe(e.target.value)} /> Yes
-                        </label>
-                        <label className="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-slate-50 dark:hover:bg-slate-800 dark:text-white">
-                           <input type="radio" name="safe" value="No" onChange={(e) => setSafe(e.target.value)} /> No
-                        </label>
-                     </div>
-                  </div>
-
-                  <div>
-                     <p className="font-bold text-slate-900 dark:text-white mb-2">Rate your experience (1-5)</p>
-                     <div className="flex gap-2">
-                        {[1, 2, 3, 4, 5].map(star => (
+            <div className="space-y-6">
+               {step === 'INITIAL' && (
+                  <div className="animate-in fade-in slide-in-from-right-8 duration-300">
+                     <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-4 text-center">{t('survey.was_completed')}</h3>
+                     <div className="space-y-3">
+                        {[
+                           { id: 'COMPLETED', label: t('survey.status_completed'), icon: CheckCircle, color: 'text-green-600', activeBg: 'bg-green-50 border-green-500', activeRing: 'ring-green-500' },
+                           { id: 'NO_SHOW', label: t('survey.status_no_show'), icon: AlertTriangle, color: 'text-amber-600', activeBg: 'bg-amber-50 border-amber-500', activeRing: 'ring-amber-500' },
+                           { id: 'UNABLE', label: t('survey.status_unable'), icon: X, color: 'text-red-600', activeBg: 'bg-red-50 border-red-500', activeRing: 'ring-red-500' }
+                        ].map((option) => (
                            <button
-                              key={star}
-                              onClick={() => setRating(star)}
-                              className={`w-10 h-10 rounded-full font-bold text-lg transition-colors ${rating >= star ? 'bg-yellow-400 text-black' : 'bg-slate-100 dark:bg-slate-700 text-slate-400'}`}
+                              key={option.id}
+                              type="button"
+                              onClick={(e) => {
+                                 e.preventDefault();
+                                 e.stopPropagation();
+                                 console.log('Setting step to', option.id);
+                                 setStep(option.id as any);
+                              }}
+                              className="w-full p-4 rounded-xl border-2 text-left flex items-center gap-4 transition-all group bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900/50 cursor-pointer relative z-10"
                            >
-                              {star}
+                              <div className={`w-10 h-10 rounded-full flex items-center justify-center bg-slate-100 dark:bg-slate-700 ${option.color}`}>
+                                 <option.icon size={20} />
+                              </div>
+                              <span className="font-bold text-slate-700 dark:text-slate-200 text-lg">{option.label}</span>
+                              <ChevronRight className="ml-auto text-slate-400" />
                            </button>
                         ))}
                      </div>
                   </div>
-               </div>
-            )}
+               )}
 
-            <Input
-               label="Is there anything you would like us to know?"
-               as="textarea"
-               placeholder="Optional comments..."
-               value={comments}
-               onChange={(e) => setComments(e.target.value)}
-            />
+               {step === 'COMPLETED' && (
+                  <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-300">
+                     <div className="flex items-center gap-2 mb-2">
+                        <button type="button" onClick={() => setStep('INITIAL')} aria-label={t('common.back')} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><ChevronLeft /></button>
+                        <h3 className="font-bold text-xl text-slate-900 dark:text-white">{t('survey.status_completed')}</h3>
+                     </div>
 
-            <Button className="w-full" onClick={() => onSubmit({ status, rating, onTime, safe, comments })}>Submit Feedback</Button>
+                     <div className="grid grid-cols-1 gap-6 p-6 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
+                        {/* Rating */}
+                        <div className="text-center">
+                           <label className="block font-bold text-sm text-slate-700 dark:text-slate-300 mb-2">{t('survey.rating_label')}</label>
+                           <div className="flex justify-center gap-2">
+                              {[1, 2, 3, 4, 5].map(star => (
+                                 <button
+                                    key={star}
+                                    type="button"
+                                    className={`p-2 transition-transform hover:scale-110 ${rating >= star ? 'text-yellow-400' : 'text-slate-300'}`}
+                                    onClick={() => setRating(star)}
+                                    aria-label={`Rate ${star} star${star > 1 ? 's' : ''}`}
+                                 >
+                                    <Heart size={40} fill={rating >= star ? "currentColor" : "none"} />
+                                 </button>
+                              ))}
+                           </div>
+                        </div>
+
+                        {/* On Time & Safety - Radio Style */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                           <div>
+                              <h3 className="font-bold text-sm text-slate-700 dark:text-slate-300 mb-3">{t('survey.on_time_label')}</h3>
+                              <div className="space-y-2">
+                                 {['Yes', 'No'].map(opt => (
+                                    <button
+                                       key={opt}
+                                       type="button"
+                                       className="w-full flex items-center gap-3 p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-black cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors text-left"
+                                       onClick={() => setOnTime(opt)}
+                                    >
+                                       <div
+                                          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${onTime === opt ? 'border-brand-600' : 'border-slate-300'}`}
+                                       >
+                                          {onTime === opt && <div className="w-2.5 h-2.5 rounded-full bg-brand-600" />}
+                                       </div>
+                                       <span className="font-medium text-sm text-slate-700 dark:text-slate-300">{opt === 'Yes' ? t('common.yes') : t('common.no')}</span>
+                                    </button>
+                                 ))}
+                              </div>
+                           </div>
+
+                           <div>
+                              <h3 className="font-bold text-sm text-slate-700 dark:text-slate-300 mb-3">{t('survey.safe_label')}</h3>
+                              <div className="space-y-2">
+                                 {['Yes', 'No'].map(opt => (
+                                    <button
+                                       key={opt}
+                                       type="button"
+                                       className="w-full flex items-center gap-3 p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-black cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors text-left"
+                                       onClick={() => setSafe(opt)}
+                                    >
+                                       <div
+                                          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${safe === opt ? 'border-brand-600' : 'border-slate-300'}`}
+                                       >
+                                          {safe === opt && <div className="w-2.5 h-2.5 rounded-full bg-brand-600" />}
+                                       </div>
+                                       <span className="font-medium text-sm text-slate-700 dark:text-slate-300">{opt === 'Yes' ? t('common.yes') : t('common.no')}</span>
+                                    </button>
+                                 ))}
+                              </div>
+                           </div>
+                        </div>
+
+                        {/* Comments */}
+                        <div>
+                           <label className="font-bold text-sm text-slate-700 dark:text-slate-300 block mb-2">{t('survey.comments_label')}</label>
+                           <textarea
+                              className="w-full p-4 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-black focus:ring-2 focus:ring-brand-500 outline-none resize-none"
+                              rows={3}
+                              placeholder={t('survey.comments_placeholder')}
+                              value={comments}
+                              onChange={e => setComments(e.target.value)}
+                           />
+                        </div>
+                     </div>
+
+                     <div className="pt-2 space-y-3">
+                        <Button
+                           className="w-full py-4 text-lg font-bold shadow-md hover:shadow-lg transform transition-all active:scale-[0.99]"
+                           disabled={!rating || !onTime || !safe}
+                           onClick={() => handleSubmit('COMPLETED')}
+                        >
+                           {t('survey.submit_feedback')}
+                        </Button>
+                        <p className="text-xs text-center text-slate-400 dark:text-slate-500 px-4">
+                           {t('survey.privacy_note')}
+                        </p>
+                     </div>
+                  </div>
+               )}
+
+               {step === 'NO_SHOW' && (
+                  <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-300">
+                     <div className="flex items-center gap-2 mb-2">
+                        <button type="button" onClick={() => setStep('INITIAL')} aria-label={t('common.back')} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><ChevronLeft /></button>
+                        <h3 className="font-bold text-xl text-amber-600">{t('survey.no_show_title')}</h3>
+                     </div>
+                     <div className="p-6 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-100 dark:border-amber-800">
+                        <p className="text-slate-700 dark:text-slate-300 mb-4">{t('survey.no_show_desc')}</p>
+                        <textarea
+                           className="w-full p-4 rounded-lg border border-amber-200 dark:border-amber-800 bg-white dark:bg-black focus:ring-2 focus:ring-amber-500 outline-none resize-none"
+                           rows={4}
+                           placeholder={t('survey.comments_placeholder')}
+                           value={comments}
+                           onChange={e => setComments(e.target.value)}
+                        />
+                     </div>
+                     <Button variant="danger" className="w-full py-4 font-bold" onClick={() => handleSubmit('NO_SHOW')}>
+                        {t('survey.submit')}
+                     </Button>
+                  </div>
+               )}
+
+               {step === 'UNABLE' && (
+                  <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-300">
+                     <div className="flex items-center gap-2 mb-2">
+                        <button type="button" onClick={() => setStep('INITIAL')} aria-label={t('common.back')} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><ChevronLeft /></button>
+                        <h3 className="font-bold text-xl text-red-600">{t('survey.unable_title')}</h3>
+                     </div>
+                     <div className="p-6 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-100 dark:border-red-800">
+                        <p className="text-slate-700 dark:text-slate-300 mb-4">{t('survey.unable_desc')}</p>
+                        <textarea
+                           className="w-full p-4 rounded-lg border border-red-200 dark:border-red-800 bg-white dark:bg-black focus:ring-2 focus:ring-red-500 outline-none resize-none"
+                           rows={4}
+                           placeholder={t('survey.comments_placeholder')}
+                           value={comments}
+                           onChange={e => setComments(e.target.value)}
+                        />
+                     </div>
+                     <Button onClick={() => handleSubmit('UNABLE')} className="w-full py-4 font-bold">
+                        {t('survey.submit')}
+                     </Button>
+                  </div>
+               )}
+            </div>
          </div>
       </Modal>
    );
