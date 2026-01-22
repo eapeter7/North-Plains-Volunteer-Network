@@ -188,31 +188,31 @@ export const UserProfile: React.FC<ProfileProps> = ({ user, onUpdate }) => {
                   </Section>
 
                   {(user.role === UserRole.CLIENT || user.role === UserRole.CLIENT_VOLUNTEER) && (
-                     <Section title="Health & Home" icon={<Heart size={20} />}>
+                     <Section title={t('profile.health_home')} icon={<Heart size={20} />}>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
-                           <LabelVal label="Pets" val={user.pets} />
-                           <LabelVal label="Interesting Facts" val={user.interestingFacts} />
+                           <LabelVal label={t('profile.pets')} val={user.pets} />
+                           <LabelVal label={t('profile.interesting_facts')} val={user.interestingFacts} />
                         </div>
                         <div className="bg-slate-50 p-4 rounded-lg">
-                           <h4 className="font-bold text-sm mb-2">Accessibility & Disability Status</h4>
+                           <h4 className="font-bold text-sm mb-2">{t('profile.accessibility_disability')}</h4>
                            <div className="grid grid-cols-2 gap-4 mb-2">
-                              <LabelVal label="Disability Status" val={user.disabilityStatus ? 'Yes' : 'No'} />
-                              <LabelVal label="Affects Independence?" val={user.affectsIndependence ? 'Yes' : 'No'} />
+                              <LabelVal label={t('profile.disability_status')} val={user.disabilityStatus ? t('common.yes') : t('common.no')} />
+                              <LabelVal label={t('profile.affects_independence')} val={user.affectsIndependence ? t('common.yes') : t('common.no')} />
                            </div>
                            <div className="grid grid-cols-3 gap-4 mb-2 border-t border-slate-200 pt-2">
-                              <LabelVal label="Mobility" val={user.accessibility?.mobility} />
-                              <LabelVal label="Vision" val={user.accessibility?.vision} />
-                              <LabelVal label="Hearing" val={user.accessibility?.hearing} />
+                              <LabelVal label={t('profile.mobility')} val={user.accessibility?.mobility} />
+                              <LabelVal label={t('profile.vision')} val={user.accessibility?.vision} />
+                              <LabelVal label={t('profile.hearing')} val={user.accessibility?.hearing} />
                            </div>
-                           <p className="text-sm text-slate-600 border-t pt-2 mt-2">{user.accessibility?.notes || 'No specific notes.'}</p>
+                           <p className="text-sm text-slate-600 border-t pt-2 mt-2">{user.accessibility?.notes || t('profile.no_notes')}</p>
                         </div>
                      </Section>
                   )}
 
                   {(user.role === UserRole.VOLUNTEER || user.role === UserRole.CLIENT_VOLUNTEER) && (
-                     <Section title="Volunteer Details" icon={<Briefcase size={20} />}>
+                     <Section title={t('profile.volunteer_details')} icon={<Briefcase size={20} />}>
                         <Grid>
-                           <LabelVal label="Driver Status" val={user.isDriver ? 'Active Driver' : 'Non-Driver'} />
+                           <LabelVal label={t('profile.driver_status')} val={user.isDriver ? t('profile.active_driver') : t('profile.non_driver')} />
                         </Grid>
                      </Section>
                   )}
@@ -226,7 +226,7 @@ export const UserProfile: React.FC<ProfileProps> = ({ user, onUpdate }) => {
                   <div className="bg-blue-50 p-6 rounded-lg border border-blue-200">
                      <label className="block text-sm font-bold text-blue-900 mb-3 flex items-center gap-2">
                         <Camera size={20} />
-                        Profile Photo
+                        {t('profile.profile_photo')}
                      </label>
                      <div className="flex flex-col sm:flex-row items-center gap-6">
                         {formData.avatar && (
@@ -241,51 +241,58 @@ export const UserProfile: React.FC<ProfileProps> = ({ user, onUpdate }) => {
                         </div>
                      </div>
                      <p className="text-sm font-bold text-blue-800 mt-3 flex items-center gap-2">
-                        <Shield size={16} /> "This helps volunteers recognize you safely."
+                        <Shield size={16} /> "{t('profile.photo_help')}"
                      </p>
                   </div>
 
                   <div className="space-y-4">
-                     <h3 className="font-bold text-brand-600">Personal Details</h3>
+                     <h3 className="font-bold text-brand-600">{t('profile.personal_details')}</h3>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Input label="Full Name" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
-                        <Input label="Preferred Name" value={formData.preferredName || ''} onChange={e => setFormData({ ...formData, preferredName: e.target.value })} />
-                        <Input label="Date of Birth" type="date" value={formData.dob || ''} onChange={e => setFormData({ ...formData, dob: e.target.value })} />
+                        <Input label={t('profile.full_name')} value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
+                        <Input label={t('profile.preferred_name')} value={formData.preferredName || ''} onChange={e => setFormData({ ...formData, preferredName: e.target.value })} />
+                        <div>
+                           <Input label={t('profile.dob')} type="date" value={formData.dob || ''} onChange={e => setFormData({ ...formData, dob: e.target.value })} />
+                           {formData.dob && new Date().getFullYear() - new Date(formData.dob).getFullYear() < 18 && (
+                              <p className="text-xs text-amber-600 font-bold mt-1 animate-in fade-in bg-amber-50 p-2 rounded border border-amber-200">
+                                 {t('onboarding.minor_warning')}
+                              </p>
+                           )}
+                        </div>
                      </div>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Input label="Phone Number" value={formData.phone || ''} onChange={e => setFormData({ ...formData, phone: e.target.value })} />
-                        <Input label="Email" value={formData.email || ''} onChange={e => setFormData({ ...formData, email: e.target.value })} />
+                        <Input label={t('common.phone')} value={formData.phone || ''} onChange={e => setFormData({ ...formData, phone: e.target.value })} />
+                        <Input label={t('common.email')} value={formData.email || ''} onChange={e => setFormData({ ...formData, email: e.target.value })} />
                      </div>
-                     <Input label="Preferred Contact Method" id="preferredContactMethod" as="select" value={formData.preferredContactMethod || ''} onChange={e => setFormData({ ...formData, preferredContactMethod: e.target.value as any })}>
-                        <option value="">Select...</option>
-                        <option>Call</option>
-                        <option>Text</option>
-                        <option>Email</option>
+                     <Input label={t('onboarding.preferred_contact')} id="preferredContactMethod" as="select" value={formData.preferredContactMethod || ''} onChange={e => setFormData({ ...formData, preferredContactMethod: e.target.value as any })}>
+                        <option value="">{t('common.select')}</option>
+                        <option value="Call">{t('onboarding.contact_call')}</option>
+                        <option value="Text">{t('onboarding.contact_text')}</option>
+                        <option value="Email">{t('onboarding.contact_email')}</option>
                      </Input>
-                     <Input label="Address" value={formData.address || 'North Plains, OR 97133'} disabled />
+                     <Input label={t('common.address')} value={formData.address || 'North Plains, OR 97133'} disabled />
 
-                     <h3 className="font-bold text-brand-600 pt-4">Demographics & Identity</h3>
+                     <h3 className="font-bold text-brand-600 pt-4">{t('profile.demographics_identity')}</h3>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Input label="Gender" id="gender" as="select" value={formData.gender || ''} onChange={e => setFormData({ ...formData, gender: e.target.value })}>
-                           <option value="">Select...</option>
-                           <option>Female</option>
-                           <option>Male</option>
-                           <option>Non-binary</option>
-                           <option>Prefer not to say</option>
+                        <Input label={t('profile.gender')} id="gender" as="select" value={formData.gender || ''} onChange={e => setFormData({ ...formData, gender: e.target.value })}>
+                           <option value="">{t('common.select')}</option>
+                           <option value="Female">{t('onboarding.female')}</option>
+                           <option value="Male">{t('onboarding.male')}</option>
+                           <option value="Non-binary">{t('onboarding.non_binary')}</option>
+                           <option value="Prefer not to say">{t('onboarding.prefer_not_say')}</option>
                         </Input>
 
                         <div>
-                           <Input label="Preferred Language" id="preferredLanguage" as="select" value={langSelect} onChange={e => handleLanguageChange(e.target.value)}>
-                              <option value="">Select...</option>
-                              <option>English</option>
-                              <option>Spanish</option>
-                              <option>Other</option>
+                           <Input label={t('profile.language')} id="preferredLanguage" as="select" value={langSelect} onChange={e => handleLanguageChange(e.target.value)}>
+                              <option value="">{t('common.select')}</option>
+                              <option value="English">English</option>
+                              <option value="Spanish">Spanish</option>
+                              <option value="Other">{t('common.other')}</option>
                            </Input>
                            {langSelect === 'Other' && (
                               <div className="animate-in fade-in slide-in-from-top-2">
                                  <Input
-                                    label="Please specify language"
-                                    placeholder="Type language..."
+                                    label={t('onboarding.specify_language')}
+                                    placeholder={t('onboarding.specify_language')}
                                     value={formData.preferredLanguage || ''}
                                     onChange={e => setFormData({ ...formData, preferredLanguage: e.target.value })}
                                  />
@@ -293,103 +300,103 @@ export const UserProfile: React.FC<ProfileProps> = ({ user, onUpdate }) => {
                            )}
                         </div>
 
-                        <Input label="Ethnicity" id="ethnicity" as="select" value={formData.ethnicity || ''} onChange={e => setFormData({ ...formData, ethnicity: e.target.value as any })}>
-                           <option value="">Select...</option>
-                           <option value="Hispanic/Latino">Hispanic or Latino</option>
-                           <option value="Not Hispanic/Latino">Not Hispanic or Latino</option>
+                        <Input label={t('profile.ethnicity')} id="ethnicity" as="select" value={formData.ethnicity || ''} onChange={e => setFormData({ ...formData, ethnicity: e.target.value as any })}>
+                           <option value="">{t('common.select')}</option>
+                           <option value="Hispanic/Latino">{t('onboarding.hispanic')}</option>
+                           <option value="Not Hispanic/Latino">{t('onboarding.not_hispanic')}</option>
                         </Input>
 
-                        <Input label="Race/Ethnicity (HUD)" id="race" as="select" value={formData.race || ''} onChange={e => setFormData({ ...formData, race: e.target.value })}>
-                           <option value="">Select...</option>
-                           <option value="White">White</option>
-                           <option value="Black">Black or African American</option>
-                           <option value="Hispanic">Hispanic or Latino</option>
-                           <option value="Asian">Asian</option>
-                           <option value="Native">American Indian or Alaska Native</option>
-                           <option value="Pacific">Native Hawaiian / Pacific Islander</option>
-                           <option value="Multi">Multi-Racial</option>
-                           <option value="Other">Other</option>
+                        <Input label={t('profile.race')} id="race" as="select" value={formData.race || ''} onChange={e => setFormData({ ...formData, race: e.target.value })}>
+                           <option value="">{t('common.select')}</option>
+                           <option value="White">{t('onboarding.white')}</option>
+                           <option value="Black">{t('onboarding.black')}</option>
+                           <option value="Hispanic">{t('onboarding.hispanic')}</option>
+                           <option value="Asian">{t('onboarding.asian')}</option>
+                           <option value="Native">{t('onboarding.native')}</option>
+                           <option value="Pacific">{t('onboarding.pacific')}</option>
+                           <option value="Multi">{t('onboarding.multi')}</option>
+                           <option value="Other">{t('common.other')}</option>
                         </Input>
-                        <Input label="Veteran Status" id="veteranStatus" as="select" value={formData.veteranStatus !== undefined ? (formData.veteranStatus ? 'Yes' : 'No') : ''} onChange={e => setFormData({ ...formData, veteranStatus: e.target.value === 'Yes' })}>
-                           <option value="">Select...</option>
-                           <option value="Yes">Yes</option>
-                           <option value="No">No</option>
+                        <Input label={t('profile.veteran_status')} id="veteranStatus" as="select" value={formData.veteranStatus !== undefined ? (formData.veteranStatus ? 'Yes' : 'No') : ''} onChange={e => setFormData({ ...formData, veteranStatus: e.target.value === 'Yes' })}>
+                           <option value="">{t('common.select')}</option>
+                           <option value="Yes">{t('common.yes')}</option>
+                           <option value="No">{t('common.no')}</option>
                         </Input>
-                        <Input label="Marital Status" id="maritalStatus" as="select" value={formData.maritalStatus || ''} onChange={e => setFormData({ ...formData, maritalStatus: e.target.value })}>
-                           <option value="">Select...</option>
-                           <option>Single</option>
-                           <option>Married</option>
-                           <option>Widowed</option>
-                           <option>Divorced</option>
+                        <Input label={t('profile.marital_status')} id="maritalStatus" as="select" value={formData.maritalStatus || ''} onChange={e => setFormData({ ...formData, maritalStatus: e.target.value })}>
+                           <option value="">{t('common.select')}</option>
+                           <option value="Single">{t('onboarding.single')}</option>
+                           <option value="Married">{t('onboarding.married')}</option>
+                           <option value="Widowed">{t('onboarding.widowed')}</option>
+                           <option value="Divorced">{t('onboarding.divorced')}</option>
                         </Input>
                      </div>
 
                      {(user.role === UserRole.CLIENT || user.role === UserRole.CLIENT_VOLUNTEER || formData.role === UserRole.CLIENT_VOLUNTEER) && (
                         <>
-                           <h3 className="font-bold text-brand-600 pt-4">Household & Financial</h3>
+                           <h3 className="font-bold text-brand-600 pt-4">{t('profile.household_financial')}</h3>
                            <div className="grid grid-cols-2 gap-4">
-                              <Input label="Household Type" id="householdType" as="select" value={formData.householdType || ''} onChange={e => setFormData({ ...formData, householdType: e.target.value })}>
-                                 <option value="">Select...</option>
-                                 <option>Single Adult</option>
-                                 <option>Couple</option>
-                                 <option>Family with Children</option>
-                                 <option>Multi-generational</option>
+                              <Input label={t('profile.household_type')} id="householdType" as="select" value={formData.householdType || ''} onChange={e => setFormData({ ...formData, householdType: e.target.value })}>
+                                 <option value="">{t('common.select')}</option>
+                                 <option value="Single Adult">{t('onboarding.single_adult')}</option>
+                                 <option value="Couple">{t('onboarding.couple')}</option>
+                                 <option value="Family with Children">{t('onboarding.family_children')}</option>
+                                 <option value="Multi-generational">{t('onboarding.multi_gen')}</option>
                               </Input>
-                              <Input label="Size" type="number" value={formData.householdSize || ''} onChange={e => setFormData({ ...formData, householdSize: parseInt(e.target.value) })} />
+                              <Input label={t('profile.household_size')} type="number" value={formData.householdSize || ''} onChange={e => setFormData({ ...formData, householdSize: parseInt(e.target.value) })} />
                            </div>
-                           <Input label="Income Range" id="incomeRange" as="select" value={formData.incomeRange || ''} onChange={e => setFormData({ ...formData, incomeRange: e.target.value })}>
-                              <option value="">Select...</option>
-                              <option value="0-30k">Under $30,000</option>
-                              <option value="30k-50k">$30,000 - $50,000</option>
-                              <option value="50k+">Over $50,000</option>
+                           <Input label={t('profile.income_range')} id="incomeRange" as="select" value={formData.incomeRange || ''} onChange={e => setFormData({ ...formData, incomeRange: e.target.value })}>
+                              <option value="">{t('common.select')}</option>
+                              <option value="0-30k">{t('onboarding.income_under_30k')}</option>
+                              <option value="30k-50k">{t('onboarding.income_30k_50k')}</option>
+                              <option value="50k+">{t('onboarding.income_80k_plus')}</option>
                            </Input>
 
-                           <h3 className="font-bold text-brand-600 pt-4">Health & Disability</h3>
-                           <Input label="Disability Status" id="disabilityStatus" as="select" value={formData.disabilityStatus !== undefined ? (formData.disabilityStatus ? 'Yes' : 'No') : ''} onChange={e => setFormData({ ...formData, disabilityStatus: e.target.value === 'Yes' })}>
-                              <option value="">Select...</option><option value="Yes">Yes</option><option value="No">No</option>
+                           <h3 className="font-bold text-brand-600 pt-4">{t('onboarding.step_4_title')}</h3>
+                           <Input label={t('profile.disability_status')} id="disabilityStatus" as="select" value={formData.disabilityStatus !== undefined ? (formData.disabilityStatus ? 'Yes' : 'No') : ''} onChange={e => setFormData({ ...formData, disabilityStatus: e.target.value === 'Yes' })}>
+                              <option value="">{t('common.select')}</option><option value="Yes">{t('common.yes')}</option><option value="No">{t('common.no')}</option>
                            </Input>
                            {formData.disabilityStatus && (
-                              <Input label="Disability Type" value={formData.disabilityType || ''} onChange={e => setFormData({ ...formData, disabilityType: e.target.value })} />
+                              <Input label={t('profile.disability_type')} value={formData.disabilityType || ''} onChange={e => setFormData({ ...formData, disabilityType: e.target.value })} />
                            )}
                         </>
                      )}
 
-                     <h3 className="font-bold text-brand-600 pt-4">Emergency Contact</h3>
+                     <h3 className="font-bold text-brand-600 pt-4">{t('profile.emergency_contact')}</h3>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Input label="Name" value={formData.emergencyContact?.name || ''}
+                        <Input label={t('profile.contact_name')} value={formData.emergencyContact?.name || ''}
                            onChange={e => setFormData({ ...formData, emergencyContact: { ...(formData.emergencyContact || { phone: '', relation: '' }), name: e.target.value } })} />
-                        <Input label="Phone" value={formData.emergencyContact?.phone || ''}
+                        <Input label={t('profile.contact_phone')} value={formData.emergencyContact?.phone || ''}
                            onChange={e => setFormData({ ...formData, emergencyContact: { ...(formData.emergencyContact || { name: '', relation: '' }), phone: e.target.value } })} />
                      </div>
-                     <Input label="Relationship" placeholder="e.g. Daughter, Neighbor" value={formData.emergencyContact?.relation || ''}
+                     <Input label={t('profile.relationship')} placeholder={t('profile.relationship')} value={formData.emergencyContact?.relation || ''}
                         onChange={e => setFormData({ ...formData, emergencyContact: { ...(formData.emergencyContact || { name: '', phone: '' }), relation: e.target.value } })} />
 
                      {/* HOBBIES FOR EVERYONE */}
-                     <h3 className="font-bold text-brand-600 pt-4">Hobbies & Interests</h3>
+                     <h3 className="font-bold text-brand-600 pt-4">{t('profile.hobbies')}</h3>
                      <Input
-                        label="Hobbies"
+                        label={t('client.hobbies')}
                         as="textarea"
                         value={formData.hobbies?.join(', ') || ''}
                         onChange={e => setFormData({ ...formData, hobbies: e.target.value.split(', ') })}
-                        placeholder="e.g. Gardening, Chess, Reading, Knitting"
+                        placeholder={t('profile.hobbies')}
                      />
 
                      {(user.role === UserRole.CLIENT || user.role === UserRole.CLIENT_VOLUNTEER || formData.role === UserRole.CLIENT_VOLUNTEER) && (
                         <>
-                           <h3 className="font-bold text-brand-600 pt-4">Household & Needs</h3>
-                           <Input label="Pets" value={formData.pets || ''} onChange={e => setFormData({ ...formData, pets: e.target.value })} />
-                           <Input label="Interesting Facts (Optional)" as="textarea" value={formData.interestingFacts || ''} onChange={e => setFormData({ ...formData, interestingFacts: e.target.value })} />
+                           <h3 className="font-bold text-brand-600 pt-4">{t('profile.household_needs')}</h3>
+                           <Input label={t('profile.pets')} value={formData.pets || ''} onChange={e => setFormData({ ...formData, pets: e.target.value })} />
+                           <Input label={t('profile.interesting_facts')} as="textarea" value={formData.interestingFacts || ''} onChange={e => setFormData({ ...formData, interestingFacts: e.target.value })} />
 
-                           <h4 className="font-bold text-slate-700 mt-2">Functional Needs</h4>
+                           <h4 className="font-bold text-slate-700 mt-2">{t('profile.functional_needs')}</h4>
                            <div className="grid grid-cols-3 gap-2">
-                              <Input label="Hearing?" id="hearing" as="select" onChange={e => setFormData({ ...formData, accessibility: { ...(formData.accessibility || { vision: 'Unknown', mobility: "" }), hearing: e.target.value } })}>
-                                 <option value="Unknown">Unknown</option><option value="No">No</option><option value="Yes">Yes</option>
+                              <Input label={t('onboarding.hearing_impaired')} id="hearing" as="select" onChange={e => setFormData({ ...formData, accessibility: { ...(formData.accessibility || { vision: 'Unknown', mobility: "" }), hearing: e.target.value } })}>
+                                 <option value="Unknown">{t('common.unknown')}</option><option value="No">{t('common.no')}</option><option value="Yes">{t('common.yes')}</option>
                               </Input>
-                              <Input label="Vision?" id="vision" as="select" onChange={e => setFormData({ ...formData, accessibility: { ...(formData.accessibility || { hearing: 'Unknown', mobility: "" }), vision: e.target.value } })}>
-                                 <option value="Unknown">Unknown</option><option value="No">No</option><option value="Yes">Yes</option>
+                              <Input label={t('onboarding.vision_impaired')} id="vision" as="select" onChange={e => setFormData({ ...formData, accessibility: { ...(formData.accessibility || { hearing: 'Unknown', mobility: "" }), vision: e.target.value } })}>
+                                 <option value="Unknown">{t('common.unknown')}</option><option value="No">{t('common.no')}</option><option value="Yes">{t('common.yes')}</option>
                               </Input>
-                              <Input label="Mobility" id="mobility" as="select" value={formData.accessibility?.mobility} onChange={e => setFormData({ ...formData, accessibility: { ...(formData.accessibility || { hearing: 'Unknown', vision: 'Unknown' }), mobility: e.target.value } })}>
-                                 <option value="">None</option><option value="Walker">Walker</option><option value="Wheelchair">Wheelchair</option>
+                              <Input label={t('profile.mobility')} id="mobility" as="select" value={formData.accessibility?.mobility} onChange={e => setFormData({ ...formData, accessibility: { ...(formData.accessibility || { hearing: 'Unknown', vision: 'Unknown' }), mobility: e.target.value } })}>
+                                 <option value="">{t('common.none')}</option><option value="Walker">{t('onboarding.walker')}</option><option value="Wheelchair">{t('onboarding.wheelchair')}</option>
                               </Input>
                            </div>
                         </>
@@ -397,11 +404,11 @@ export const UserProfile: React.FC<ProfileProps> = ({ user, onUpdate }) => {
 
                      {(user.role === UserRole.VOLUNTEER || user.role === UserRole.CLIENT_VOLUNTEER || formData.role === UserRole.CLIENT_VOLUNTEER) && (
                         <>
-                           <h3 className="font-bold text-brand-600 pt-4">Volunteer Details</h3>
+                           <h3 className="font-bold text-brand-600 pt-4">{t('profile.volunteer_details')}</h3>
                            <div className="bg-brand-50 p-4 rounded border border-brand-200 mb-4">
                               <label className="flex items-center space-x-3">
                                  <input type="checkbox" className="w-5 h-5 text-brand-600 rounded" checked={formData.isDriver || false} onChange={e => setFormData({ ...formData, isDriver: e.target.checked })} />
-                                 <span className="font-bold text-slate-800">I am a licensed driver willing to provide rides</span>
+                                 <span className="font-bold text-slate-800">{t('profile.driver_willing')}</span>
                               </label>
                            </div>
                         </>

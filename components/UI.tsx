@@ -210,6 +210,7 @@ export const Input: React.FC<InputProps> = ({ label, id, className = '', as = 'i
           {...(props as any)}
           title={title || label || 'Form Select'}
           aria-label={props['aria-label'] || label || 'Form Select'}
+          className={`w-full px-4 py-2 rounded-lg border focus:ring-2 outline-none transition-all ${styles} ${className}`}
         >
           {children}
         </select>

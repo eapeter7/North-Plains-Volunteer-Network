@@ -51,33 +51,33 @@ export const OnboardingNextStepsModal: React.FC<{ onClose: () => void, role: 'CL
 
             <p className="text-slate-600 dark:text-slate-300">
                {role === 'VOLUNTEER'
-                  ? "Thank you for joining our team of neighbors helping neighbors! To ensure safety, we have a few important next steps."
-                  : "Thank you for joining our community! Your profile is complete, and you can now start requesting assistance."}
+                  ? t('onboarding.volunteer_thank_you')
+                  : t('onboarding.client_thank_you')}
             </p>
 
             <div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 text-left space-y-4">
-               <h3 className="font-bold text-lg dark:text-white">Next Steps:</h3>
+               <h3 className="font-bold text-lg dark:text-white">{t('onboarding.next_steps')}</h3>
                <ul className="space-y-3">
                   {role === 'VOLUNTEER' ? (
                      <>
                         <li className="flex items-start gap-3">
                            <div className="bg-blue-100 text-blue-700 p-1 rounded-full mt-0.5"><ShieldCheck size={14} /></div>
-                           <span className="text-sm dark:text-slate-300"><strong>Background Check:</strong> Required for all volunteers. You'll see a status indicator on your dashboard.</span>
+                           <span className="text-sm dark:text-slate-300"><strong>{t('onboarding.bg_check_title')}:</strong> {t('onboarding.bg_check_status_desc')}</span>
                         </li>
                         <li className="flex items-start gap-3">
                            <div className="bg-purple-100 text-purple-700 p-1 rounded-full mt-0.5"><PlayCircle size={14} /></div>
-                           <span className="text-sm dark:text-slate-300"><strong>Training:</strong> Complete the short orientation modules in the Training Center.</span>
+                           <span className="text-sm dark:text-slate-300"><strong>{t('onboarding.training')}:</strong> {t('onboarding.training_desc')}</span>
                         </li>
                      </>
                   ) : (
                      <>
                         <li className="flex items-start gap-3">
                            <div className="bg-blue-100 text-blue-700 p-1 rounded-full mt-0.5"><MessageSquare size={14} /></div>
-                           <span className="text-sm dark:text-slate-300"><strong>Make a Request:</strong> Use the "New Request" button to ask for a ride, errand, or visit.</span>
+                           <span className="text-sm dark:text-slate-300"><strong>{t('onboarding.make_request')}:</strong> {t('onboarding.make_request_desc')}</span>
                         </li>
                         <li className="flex items-start gap-3">
                            <div className="bg-purple-100 text-purple-700 p-1 rounded-full mt-0.5"><Users size={14} /></div>
-                           <span className="text-sm dark:text-slate-300"><strong>Get Matched:</strong> A background-checked neighbor will pick up your request.</span>
+                           <span className="text-sm dark:text-slate-300"><strong>{t('onboarding.get_matched')}:</strong> {t('onboarding.get_matched_desc')}</span>
                         </li>
                      </>
                   )}
@@ -85,7 +85,7 @@ export const OnboardingNextStepsModal: React.FC<{ onClose: () => void, role: 'CL
             </div>
 
             <Button size="lg" className="w-full" onClick={onClose}>
-               {role === 'VOLUNTEER' ? "Go to Dashboard" : "Get Started"}
+               {role === 'VOLUNTEER' ? t('onboarding.go_dashboard') : t('onboarding.get_started')}
             </Button>
          </div>
       </Modal>
@@ -114,7 +114,7 @@ const ContactStaffModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       <Modal isOpen={true} onClose={onClose} title={t('contact.title')}>
          <div className="space-y-4">
             <p className="text-slate-600 dark:text-slate-300 mb-2">{t('contact.intro')}</p>
-            <Input label={t('contact.subject')} placeholder="e.g. Suggestion, Question, Praise" />
+            <Input label={t('contact.subject')} placeholder={t('contact.placeholder')} />
             <div className="space-y-1">
                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">{t('contact.message')}</label>
                <textarea className="w-full p-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-brand-500 outline-none h-32 text-slate-900 dark:text-white" placeholder="..." />
@@ -146,7 +146,7 @@ const CancellationModal: React.FC<{ request: Request; onClose: () => void; onCon
             )}
             <Input
                label={t('common.reason')}
-               placeholder="e.g. Plans changed, Appointment cancelled..."
+               placeholder={t('client.cancel_reason_placeholder')}
                value={reason}
                onChange={(e) => setReason(e.target.value)}
                as="textarea"
@@ -489,11 +489,13 @@ const ClientOnboarding: React.FC<{ user: User; onUpdate: (u: Partial<User>) => v
          spread: 70,
          origin: { y: 0.6 }
       });
-      onUpdate({ ...formData, onboardingStep: OnboardingStep.COMPLETE, intakeDate: new Date().toISOString().split('T')[0], justFinishedOnboarding: true });
-      // Force navigation to dashboard after state update to prevent blank screen
-      setTimeout(() => {
-         onNavigate('dashboard');
-      }, 100);
+
+      let adminNotes = user.adminNotes || '';
+      if (formData.dob && new Date().getFullYear() - new Date(formData.dob).getFullYear() < 18) {
+         adminNotes += '\n[SYSTEM]: User identified as minor (Under 18). Guardian permission required.';
+      }
+
+      onUpdate({ ...formData, adminNotes, onboardingStep: OnboardingStep.COMPLETE, intakeDate: new Date().toISOString().split('T')[0], justFinishedOnboarding: true });
    };
 
    return (
@@ -513,7 +515,14 @@ const ClientOnboarding: React.FC<{ user: User; onUpdate: (u: Partial<User>) => v
                   </div>
                   <Input label={t('onboarding.preferred_name')} value={formData.preferredName || ''} onChange={e => setFormData({ ...formData, preferredName: e.target.value })} />
                   <Input label={t('onboarding.address')} value="North Plains, OR 97133" disabled className="bg-slate-50 dark:bg-slate-800" />
-                  <Input label={t('onboarding.dob')} type="date" value={formData.dob || ''} onChange={e => setFormData({ ...formData, dob: e.target.value })} />
+                  <div>
+                     <Input label={t('onboarding.dob')} type="date" value={formData.dob || ''} onChange={e => setFormData({ ...formData, dob: e.target.value })} />
+                     {formData.dob && new Date().getFullYear() - new Date(formData.dob).getFullYear() < 18 && (
+                        <p className="text-xs text-amber-600 font-bold mt-1 animate-in fade-in bg-amber-50 p-2 rounded border border-amber-200">
+                           {t('onboarding.minor_warning')}
+                        </p>
+                     )}
+                  </div>
 
                   <div className="grid grid-cols-1 gap-6 pt-4">
                      {/* Profile Photo */}
@@ -546,10 +555,10 @@ const ClientOnboarding: React.FC<{ user: User; onUpdate: (u: Partial<User>) => v
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                      <Input label={t('onboarding.gender')} as="select" value={formData.gender || ''} onChange={e => setFormData({ ...formData, gender: e.target.value })}>
                         <option value="">{t('common.select')}</option>
-                        <option>{t('onboarding.female')}</option>
-                        <option>{t('onboarding.male')}</option>
-                        <option>{t('onboarding.non_binary')}</option>
-                        <option>{t('onboarding.prefer_not_say')}</option>
+                        <option value="Female">{t('onboarding.female')}</option>
+                        <option value="Male">{t('onboarding.male')}</option>
+                        <option value="Non-binary">{t('onboarding.non_binary')}</option>
+                        <option value="Prefer not to say">{t('onboarding.prefer_not_say')}</option>
                      </Input>
                      <Input label={t('onboarding.veteran_status')} as="select" value={formData.veteranStatus !== undefined ? (formData.veteranStatus ? 'Yes' : 'No') : ''} onChange={e => setFormData({ ...formData, veteranStatus: e.target.value === 'Yes' })}>
                         <option value="">{t('common.select')}</option>
@@ -566,20 +575,20 @@ const ClientOnboarding: React.FC<{ user: User; onUpdate: (u: Partial<User>) => v
 
                   <Input label={t('onboarding.race')} as="select" value={formData.race || ''} onChange={e => setFormData({ ...formData, race: e.target.value })}>
                      <option value="">{t('common.select')}</option>
-                     <option value="White">White</option>
-                     <option value="Black or African American">Black or African American</option>
-                     <option value="Asian">Asian</option>
-                     <option value="American Indian or Alaska Native">American Indian or Alaska Native</option>
-                     <option value="Native Hawaiian or Other Pacific Islander">Native Hawaiian or Other Pacific Islander</option>
-                     <option value="Multi-Racial">Multi-Racial</option>
+                     <option value="White">{t('onboarding.white')}</option>
+                     <option value="Black or African American">{t('onboarding.black')}</option>
+                     <option value="Asian">{t('onboarding.asian')}</option>
+                     <option value="American Indian or Alaska Native">{t('onboarding.native')}</option>
+                     <option value="Native Hawaiian or Other Pacific Islander">{t('onboarding.pacific')}</option>
+                     <option value="Multi-Racial">{t('onboarding.multi')}</option>
                   </Input>
 
                   <div>
                      <Input label={t('onboarding.preferred_language')} as="select" value={langSelect} onChange={e => handleLanguageChange(e.target.value)}>
                         <option value="">{t('common.select')}</option>
-                        <option>English</option>
-                        <option>Spanish</option>
-                        <option>{t('common.other')}</option>
+                        <option value="English">English</option>
+                        <option value="Spanish">Spanish</option>
+                        <option value="Other">{t('common.other')}</option>
                      </Input>
                      {langSelect === 'Other' && (
                         <Input label={t('onboarding.specify_language')} value={formData.preferredLanguage || ''} onChange={e => setFormData({ ...formData, preferredLanguage: e.target.value })} />
@@ -600,10 +609,10 @@ const ClientOnboarding: React.FC<{ user: User; onUpdate: (u: Partial<User>) => v
                   <div className="grid grid-cols-2 gap-4">
                      <Input label={t('onboarding.household_type')} as="select" value={formData.householdType || ''} onChange={e => setFormData({ ...formData, householdType: e.target.value })}>
                         <option value="">{t('common.select')}</option>
-                        <option>{t('onboarding.single_adult')}</option>
-                        <option>{t('onboarding.couple')}</option>
-                        <option>{t('onboarding.family_children')}</option>
-                        <option>{t('onboarding.multi_gen')}</option>
+                        <option value="Single Adult">{t('onboarding.single_adult')}</option>
+                        <option value="Couple">{t('onboarding.couple')}</option>
+                        <option value="Family with Children">{t('onboarding.family_children')}</option>
+                        <option value="Multi-generational">{t('onboarding.multi_gen')}</option>
                      </Input>
                      <Input label={t('onboarding.household_size')} type="number" value={formData.householdSize || ''} onChange={e => setFormData({ ...formData, householdSize: parseInt(e.target.value) })} />
                   </div>
@@ -627,7 +636,7 @@ const ClientOnboarding: React.FC<{ user: User; onUpdate: (u: Partial<User>) => v
                            {['Wages', 'Social Security', 'SSI', 'SSDI', 'Pension', 'Unemployment', 'None'].map(src => (
                               <label key={src} className="flex items-center gap-2 dark:text-slate-300">
                                  <input type="checkbox" checked={formData.incomeSources?.includes(src)} onChange={() => toggleArrayItem('incomeSources', src)} />
-                                 {src}
+                                 {t(`income_source.${src.toLowerCase().replace(/ /g, '_')}`) || src}
                               </label>
                            ))}
                         </div>
@@ -639,7 +648,7 @@ const ClientOnboarding: React.FC<{ user: User; onUpdate: (u: Partial<User>) => v
                            {['SNAP', 'WIC', 'TANF', 'VA Benefits', 'Housing Voucher'].map(ben => (
                               <label key={ben} className="flex items-center gap-2 dark:text-slate-300">
                                  <input type="checkbox" checked={formData.nonCashBenefits?.includes(ben)} onChange={() => toggleArrayItem('nonCashBenefits', ben)} />
-                                 {ben}
+                                 {t(`non_cash.${ben.toLowerCase().replace(/ /g, '_')}`) || ben}
                               </label>
                            ))}
                         </div>
@@ -952,7 +961,7 @@ const EditRequestModal: React.FC<{ request: Request; onClose: () => void; onSave
                      >
                         <option value="">{t('common.select')}</option>
                         {SUBCATEGORY_OPTIONS[category]?.map(opt => (
-                           <option key={opt} value={opt}>{opt}</option>
+                           <option key={opt} value={opt}>{t(`subcategory.${opt.toLowerCase().replace(/[\/\s-]/g, '_')}`) || opt}</option>
                         ))}
                      </select>
                   </div>
@@ -1148,7 +1157,7 @@ export const CreateRequestFlow: React.FC<{ onSubmit: (data: Partial<Request>) =>
                            >
                               <option value="">{t('common.select')}</option>
                               {SUBCATEGORY_OPTIONS[data.category || '']?.map(opt => (
-                                 <option key={opt} value={opt}>{opt}</option>
+                                 <option key={opt} value={opt}>{t(`subcategory.${opt.toLowerCase().replace(/[\/\s-]/g, '_')}`) || opt}</option>
                               ))}
                            </select>
                            <p className="text-xs text-slate-500 mt-1">{t('request.subcategory_desc')}</p>
@@ -1266,10 +1275,10 @@ export const CreateRequestFlow: React.FC<{ onSubmit: (data: Partial<Request>) =>
                   </div>
 
                   <Input
-                     label={t('request.description')}
+                     label={data.category === RequestCategory.SOCIAL ? t('request.description_social_label') : t('request.description')}
                      as="textarea"
                      rows={3}
-                     placeholder={t('request.description_placeholder')}
+                     placeholder={data.category === RequestCategory.SOCIAL ? t('request.description_social_placeholder') : t('request.description_placeholder')}
                      value={data.description || ''}
                      onChange={e => setData({ ...data, description: e.target.value })}
                   />
@@ -1323,9 +1332,10 @@ export const PostServiceSurvey: React.FC<{ request: Request; onSubmit: (data: an
    const [onTime, setOnTime] = useState('');
    const [safe, setSafe] = useState('');
    const [comments, setComments] = useState('');
+   const [selectedStrengths, setSelectedStrengths] = useState<string[]>([]);
 
    const handleSubmit = (status: string) => {
-      onSubmit({ status, rating, onTime, safe, comments });
+      onSubmit({ status, rating, onTime, safe, comments, strengths: selectedStrengths });
    };
 
    return (
@@ -1470,6 +1480,32 @@ export const PostServiceSurvey: React.FC<{ request: Request; onSubmit: (data: an
                            </div>
                         </div>
 
+                        {/* Strengths */}
+                        <div>
+                           <label className="font-bold text-sm text-slate-700 dark:text-slate-300 block mb-2">{t('survey.strengths_label')}</label>
+                           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                              {['Reliability', 'Empathy', 'Punctuality', 'Communication', 'Skills', 'Teamwork'].map(strength => (
+                                 <label key={strength} className="flex items-center gap-2 p-3 bg-white dark:bg-black border border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors">
+                                    <input
+                                       type="checkbox"
+                                       className="w-4 h-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                                       checked={selectedStrengths.includes(strength)}
+                                       onChange={(e) => {
+                                          if (e.target.checked) {
+                                             setSelectedStrengths([...selectedStrengths, strength]);
+                                          } else {
+                                             setSelectedStrengths(selectedStrengths.filter(s => s !== strength));
+                                          }
+                                       }}
+                                    />
+                                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                                       {t(`strength.${strength.toLowerCase()}`) || strength}
+                                    </span>
+                                 </label>
+                              ))}
+                           </div>
+                        </div>
+
                         {/* Comments */}
                         <div>
                            <label className="font-bold text-sm text-slate-700 dark:text-slate-300 block mb-2">{t('survey.comments_label')}</label>
@@ -1547,14 +1583,17 @@ export const PostServiceSurvey: React.FC<{ request: Request; onSubmit: (data: an
    );
 };
 
-export const ClientResources: React.FC = () => (
-   <div className="max-w-2xl mx-auto space-y-6">
-      <h2 className="text-2xl font-bold dark:text-white">Client Resources</h2>
-      <Card title="Platform Guide">
-         <p className="mb-4">Watch this video to learn how to make requests.</p>
-         <div className="w-full h-64 bg-slate-200 dark:bg-slate-700 rounded flex items-center justify-center">
-            <span className="text-slate-500 dark:text-slate-400 font-bold">Video Placeholder</span>
-         </div>
-      </Card>
-   </div>
-);
+export const ClientResources: React.FC = () => {
+   const { t } = useTheme();
+   return (
+      <div className="max-w-2xl mx-auto space-y-6">
+         <h2 className="text-2xl font-bold dark:text-white">{t('client.resources_title')}</h2>
+         <Card title={t('client.guide_title')}>
+            <p className="mb-4">{t('client.guide_desc')}</p>
+            <div className="w-full h-64 bg-slate-200 dark:bg-slate-700 rounded flex items-center justify-center">
+               <span className="text-slate-500 dark:text-slate-400 font-bold">{t('client.video_placeholder')}</span>
+            </div>
+         </Card>
+      </div>
+   );
+};

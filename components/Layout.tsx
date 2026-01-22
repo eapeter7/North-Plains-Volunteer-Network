@@ -19,6 +19,17 @@ export const Layout: React.FC<LayoutProps> = ({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showA11yMenu, setShowA11yMenu] = useState(false);
 
+  // Keyboard shortcut for language toggle (Alt + Shift + L)
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.altKey && e.shiftKey && e.key.toLowerCase() === 'l') {
+        setLanguage(language === 'en' ? 'es' : 'en');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [language, setLanguage]);
+
   const getNavItems = () => {
     if (!user) {
       return [
@@ -43,18 +54,20 @@ export const Layout: React.FC<LayoutProps> = ({
     }
 
     if (user.role === UserRole.VOLUNTEER) {
+      const isPending = user.backgroundCheckStatus === 'PENDING' || user.backgroundCheckStatus === 'NOT_STARTED' || !user.trainingComplete;
       return [
         ...loggedInCommon,
-        { id: 'opportunities', label: t('nav.opportunities'), icon: ClipboardList },
+        ...(isPending ? [] : [{ id: 'opportunities', label: t('nav.opportunities'), icon: ClipboardList }]),
         { id: 'history', label: t('nav.history'), icon: ClipboardList },
       ];
     }
 
     if (user.role === UserRole.CLIENT_VOLUNTEER) {
+      const isPending = user.backgroundCheckStatus === 'PENDING' || user.backgroundCheckStatus === 'NOT_STARTED' || !user.trainingComplete;
       return [
         ...loggedInCommon,
         { id: 'create-request', label: t('nav.new_request'), icon: ClipboardList },
-        { id: 'opportunities', label: t('nav.opportunities'), icon: ClipboardList },
+        ...(isPending ? [] : [{ id: 'opportunities', label: t('nav.opportunities'), icon: ClipboardList }]),
         { id: 'history', label: t('nav.history'), icon: ClipboardList },
       ];
     }
@@ -62,7 +75,7 @@ export const Layout: React.FC<LayoutProps> = ({
     if (user.role === UserRole.ADMIN || user.role === UserRole.COORDINATOR) {
       return [
         ...loggedInCommon,
-        { id: 'my-assignments', label: 'My Assignments', icon: ClipboardList },
+        { id: 'my-assignments', label: t('admin.my_assignments'), icon: ClipboardList },
         { id: 'opportunities', label: t('nav.my_opps'), icon: Heart },
       ];
     }
@@ -81,8 +94,8 @@ export const Layout: React.FC<LayoutProps> = ({
             <div className="flex items-center cursor-pointer" onClick={() => onNavigate(user ? 'dashboard' : 'home')}>
               <Logo className="h-10 w-auto mr-3" />
               <div>
-                <h1 className={`text-xl font-bold leading-none ${highContrast ? 'text-yellow-400' : 'text-brand-700'}`}>North Plains</h1>
-                <p className={`text-xs font-medium tracking-wide ${highContrast ? 'text-white' : 'text-brand-600'}`}>VOLUNTEER NETWORK</p>
+                <h1 className={`text-xl font-bold leading-none ${highContrast ? 'text-yellow-400' : 'text-brand-700'}`}>{t('hero.title_prefix')}</h1>
+                <p className={`text-xs font-medium tracking-wide ${highContrast ? 'text-white' : 'text-brand-600'}`}>{t('hero.title_suffix')}</p>
               </div>
             </div>
 
@@ -144,6 +157,14 @@ export const Layout: React.FC<LayoutProps> = ({
                           <button onClick={() => setTextSize('normal')} className={`flex-1 py-1 text-xs rounded font-medium ${textSize === 'normal' ? (highContrast ? 'bg-yellow-400 text-black' : 'bg-white shadow text-brand-700') : (highContrast ? 'text-white' : 'text-slate-500')}`}>A</button>
                           <button onClick={() => setTextSize('large')} className={`flex-1 py-1 text-sm rounded font-medium ${textSize === 'large' ? (highContrast ? 'bg-yellow-400 text-black' : 'bg-white shadow text-brand-700') : (highContrast ? 'text-white' : 'text-slate-500')}`}>A+</button>
                           <button onClick={() => setTextSize('xl')} className={`flex-1 py-1 text-base rounded font-medium ${textSize === 'xl' ? (highContrast ? 'bg-yellow-400 text-black' : 'bg-white shadow text-brand-700') : (highContrast ? 'text-white' : 'text-slate-500')}`}>A++</button>
+                        </div>
+                      </div>
+
+                      <div className="mb-4">
+                        <p className={`text-sm font-medium mb-2 ${highContrast ? 'text-white' : 'text-slate-700'}`}>{t('settings.language')}</p>
+                        <div className={`flex rounded-lg p-1 border ${highContrast ? 'bg-slate-700 border-slate-600' : 'bg-slate-100 border-slate-200'}`}>
+                          <button onClick={() => setLanguage('en')} className={`flex-1 py-1 text-xs rounded font-medium ${language === 'en' ? (highContrast ? 'bg-yellow-400 text-black' : 'bg-white shadow text-brand-700') : (highContrast ? 'text-white' : 'text-slate-500')}`}>English</button>
+                          <button onClick={() => setLanguage('es')} className={`flex-1 py-1 text-sm rounded font-medium ${language === 'es' ? (highContrast ? 'bg-yellow-400 text-black' : 'bg-white shadow text-brand-700') : (highContrast ? 'text-white' : 'text-slate-500')}`}>Español</button>
                         </div>
                       </div>
 
@@ -221,11 +242,11 @@ export const Layout: React.FC<LayoutProps> = ({
       {/* Footer */}
       <footer className={`border-t py-8 ${highContrast ? 'bg-slate-900 border-white text-white' : 'bg-white border-slate-200 text-slate-500'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center text-sm">
-          <p>© 2024 North Plains Volunteer Network. All rights reserved.</p>
+          <p>© 2024 North Plains Volunteer Network. {t('footer.rights')}</p>
           <div className="flex space-x-6 mt-4 md:mt-0">
             <button onClick={() => onNavigate('contact')} className="hover:underline">{t('nav.contact')}</button>
-            <button onClick={() => onNavigate('privacy-policy')} className="hover:underline">Privacy Policy</button>
-            <button onClick={() => onNavigate('terms-of-service')} className="hover:underline">Terms of Service</button>
+            <button onClick={() => onNavigate('privacy-policy')} className="hover:underline">{t('footer.privacy')}</button>
+            <button onClick={() => onNavigate('terms-of-service')} className="hover:underline">{t('footer.terms')}</button>
           </div>
         </div>
       </footer>

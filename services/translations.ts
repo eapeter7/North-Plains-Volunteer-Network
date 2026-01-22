@@ -432,6 +432,12 @@ export const DICTIONARY = {
         'contact.send': 'Send Feedback',
         'contact.success': 'Feedback sent successfully!',
 
+        // Survey
+
+
+
+
+
         // Profile
         'profile.edit_profile': 'Edit Profile',
         'profile.no_address': 'No address set',
@@ -516,6 +522,7 @@ export const DICTIONARY = {
         'onboarding.preferred_name': 'Preferred Name (Optional)',
         'onboarding.address': 'Address',
         'onboarding.dob': 'Date of Birth',
+        'onboarding.minor_warning': 'Applicants under 18 require a guardian\'s permission. A form will be provided upon completion, and staff will reach out.',
         'onboarding.profile_photo': 'Profile Photo',
         'onboarding.photo_desc': 'This helps volunteers recognize you safely.',
         'onboarding.step_2_title': 'Step 2: Identity & Demographics',
@@ -596,8 +603,54 @@ export const DICTIONARY = {
         'onboarding.contact_text': 'Text Message',
 
         'onboarding.step_4_skills': 'Step 4: Skills & Experience',
+
+        // Subcategories
+        'subcategory.medical_appointment': 'Medical Appointment',
+        'subcategory.work_job_interview': 'Work/Job Interview',
+        'subcategory.social_event': 'Social Event',
+        'subcategory.errand_run': 'Errand Run',
+        'subcategory.grocery_shopping': 'Grocery Shopping',
+        'subcategory.post_office_run': 'Post Office Run',
+        'subcategory.library_drop_off': 'Library Drop-off',
+        'subcategory.donation_drop_off': 'Donation Drop-off',
+        'subcategory.light_bulb_replacement': 'Light Bulb Replacement',
+        'subcategory.smoke_alarm_battery': 'Smoke Alarm Battery',
+        'subcategory.moving_furniture_boxes': 'Moving Furniture/Boxes',
+        'subcategory.safety_check': 'Safety Check',
+        'subcategory.holiday_decoration': 'Holiday Decoration',
+        'subcategory.garden_yard_help': 'Garden/Yard Help',
+        'subcategory.friendly_visit': 'Friendly Visit',
+        'subcategory.phone_check_in': 'Phone Check-in',
+        'subcategory.walk_companion': 'Walk Companion',
+        'subcategory.game_activity_buddy': 'Game/Activity Buddy',
+        'subcategory.reading_helper': 'Reading Helper',
+        'subcategory.other': 'Other',
+
+        // Client Resources
+        'client.resources_title': 'Client Resources',
+        'client.guide_title': 'Platform Guide',
+        'client.guide_desc': 'Watch this video to learn how to make requests.',
+        'client.video_placeholder': 'Video Placeholder',
+
         'onboarding.languages': 'Languages Spoken',
         'onboarding.is_driver': 'I can provide transportation (Valid License & Insurance)',
+
+        // New Onboarding & Client Keys
+        'onboarding.volunteer_thank_you': "Thank you for joining our team of neighbors helping neighbors! To ensure safety, we have a few important next steps.",
+        'onboarding.client_thank_you': "Thank you for joining our community! Your profile is complete, and you can now start requesting assistance.",
+        'onboarding.bg_check_title': 'Background Check',
+        'onboarding.bg_check_status_desc': 'Required for all volunteers. You\'ll see a status indicator on your dashboard.',
+        'onboarding.training': 'Training',
+        'onboarding.training_desc': 'Complete the short orientation modules in the Training Center.',
+        'onboarding.make_request': 'Make a Request',
+        'onboarding.make_request_desc': 'Use the "New Request" button to ask for a ride, errand, or visit.',
+        'onboarding.get_matched': 'Get Matched',
+        'onboarding.get_matched_desc': 'A background-checked neighbor will pick up your request.',
+        'onboarding.go_dashboard': 'Go to Dashboard',
+        'onboarding.get_started': 'Get Started',
+        'onboarding.next_steps': 'Next Steps:',
+        'contact.placeholder': 'e.g. Suggestion, Question, Praise',
+        'client.cancel_reason_placeholder': 'e.g. Plans changed, Appointment cancelled...',
         'onboarding.profession': 'Profession / Background',
         'onboarding.special_skills': 'Special Skills or Interests',
 
@@ -619,6 +672,24 @@ export const DICTIONARY = {
 
         'onboarding.step_2_hud': 'Step 2: Demographics',
         'onboarding.hud_grant_desc': 'We collect this anonymous demographic data to qualify for community grants that fund our program.',
+
+        // Income Sources
+        'income_source.wages': 'Wages',
+        'income_source.social_security': 'Social Security',
+        'income_source.ssi': 'SSI',
+        'income_source.ssdi': 'SSDI',
+        'income_source.pension': 'Pension',
+        'income_source.unemployment': 'Unemployment',
+        'income_source.none': 'None',
+        'income_source.other': 'Other',
+
+        // Non-Cash Benefits
+        'non_cash.snap': 'SNAP (Food Stamps)',
+        'non_cash.wic': 'WIC',
+        'non_cash.tanf': 'TANF',
+        'non_cash.va_benefits': 'VA Benefits',
+        'non_cash.housing_voucher': 'Housing Voucher',
+
         'onboarding.marital_status': 'Marital Status',
         'onboarding.single': 'Single',
         'onboarding.married': 'Married',
@@ -738,6 +809,9 @@ export const DICTIONARY = {
         'survey.privacy_note': 'We use this feedback to ensure the safety and quality of our volunteer community. Thank you for your help!',
         'survey.submit': 'Submit Feedback',
         'survey.no_show_title': 'Volunteer No-Show',
+        'request.description_social_label': 'Activity Ideas & Details',
+        'request.description_social_placeholder': 'What would you like to do? E.g. get coffee, play board games, go for a walk, work on a puzzle, etc.',
+
         'survey.no_show_desc': 'We are sorry the volunteer did not arrive. This helps us track reliability.',
         'survey.unable_title': 'Incomplete Request',
         'survey.unable_desc': 'Please share why the service could not be completed.',
@@ -751,6 +825,13 @@ export const DICTIONARY = {
         'survey.reason_cancelled': 'Client Cancelled (on-site)',
         'survey.reason_unsafe': 'Unsafe Environment',
         'survey.reason_emergency': 'Personal Emergency',
+        'survey.strengths_label': 'Volunteer Strengths (Select all that apply)',
+        'strength.reliability': 'Reliability',
+        'strength.empathy': 'Empathy',
+        'strength.punctuality': 'Punctuality',
+        'strength.communication': 'Communication',
+        'strength.skills': 'Skills',
+        'strength.teamwork': 'Teamwork',
 
         // Client Resources
         'resources.client_title': 'Client Resources',
@@ -787,6 +868,9 @@ export const DICTIONARY = {
         'vol.module_2_title': 'Module 2: Home Safety',
         'vol.module_2_desc': 'Best practices for safe home visits.',
         'vol.quick_downloads': 'Quick Downloads',
+        'resources.guardian_form': 'Guardian Permission Form',
+        'resources.guardian_form_desc': 'Required for volunteers/clients under 18. Please download, sign, and return.',
+        'resources.download': 'Download',
         'vol.handbook_pdf': 'Volunteer Handbook (PDF)',
         'vol.policies_desc': 'Full legal details and policies.',
         'vol.code_conduct': 'Code of Conduct (Signed)',
@@ -903,6 +987,36 @@ export const DICTIONARY = {
         'settings.download_data': 'Download My Data',
         'settings.danger_zone': 'Danger Zone',
         'settings.deactivate_account': 'Deactivate Account',
+
+        // Volunteer Extras
+        'vol.keep_assignment': 'Keep Assignment',
+        'vol.drop': 'Drop',
+        'vol.drop_reason': 'Volunteer opted to drop after modification.',
+        'vol.match_confirmed': 'New Match Confirmed',
+        'vol.match_desc_mock': 'You are matched with Martha for Nov 15.',
+        'vol.winter_services': '❄️ Winter Services',
+        'vol.winter_desc': 'We are now accepting requests for holiday decoration help!',
+        'vol.add_to_calendar': 'Add to Calendar',
+        'common.update': 'Update',
+        'survey.post_service_report': 'Post-Service Report',
+
+        'req.pickup': 'Pick-up',
+        'req.appointment': 'Appointment',
+        'req.return': 'Return',
+        'req.after_appointment': 'After appointment',
+        'req.destination': 'Destination',
+        'req.pickup_address': 'Pick-up Address',
+
+        'common.none_listed': 'None listed',
+        'calendar.google': 'Google Calendar',
+        'calendar.outlook': 'Outlook / Hotmail',
+        'calendar.apple': '(Apple / Desktop)',
+
+        // Footer & Extra
+        'footer.rights': 'All rights reserved.',
+        'footer.privacy': 'Privacy Policy',
+        'footer.terms': 'Terms of Service',
+        'admin.my_assignments': 'My Assignments',
     },
     es: {
         // Navigation
@@ -1235,14 +1349,38 @@ export const DICTIONARY = {
         'category.Other': 'Otro',
 
         // Subcategorías Dinámicas
-        'subcategory.Medical Appointment': 'Cita Médica',
-        'subcategory.Grocery': 'Comestibles / Supermercado',
-        'subcategory.Friendly Visit': 'Visita Amistosa',
-        'subcategory.Yard Work': 'Trabajo de Jardín',
-        'subcategory.Church Service': 'Servicio Religioso',
-        'subcategory.Tech Help': 'Ayuda Tecnológica',
-        'subcategory.Light Housekeeping': 'Limpieza Ligera',
-        'subcategory.Meal Prep': 'Preparación de Comidas',
+        'subcategory.medical_appointment': 'Cita Médica',
+        'subcategory.work_job_interview': 'Entrevista de Trabajo',
+        'subcategory.social_event': 'Evento Social',
+        'subcategory.errand_run': 'Recado / Mandado',
+        'subcategory.grocery_shopping': 'Comestibles / Supermercado',
+        'subcategory.post_office_run': 'Correos',
+        'subcategory.library_drop_off': 'Biblioteca',
+        'subcategory.donation_drop_off': 'Donaciones',
+        'subcategory.light_bulb_replacement': 'Reemplazo de Bombillas',
+        'subcategory.smoke_alarm_battery': 'Batería de Alarma de Humo',
+        'subcategory.moving_furniture_boxes': 'Mover Muebles/Cajas',
+        'subcategory.safety_check': 'Chequeo de Seguridad',
+        'subcategory.holiday_decoration': 'Decoración Navideña',
+        'subcategory.garden_yard_help': 'Ayuda en el Jardín',
+        'subcategory.friendly_visit': 'Visita Amistosa',
+        'subcategory.phone_check_in': 'Chequeo Telefónico',
+        'subcategory.walk_companion': 'Compañero de Caminata',
+        'subcategory.game_activity_buddy': 'Compañero de Juegos',
+        'subcategory.reading_helper': 'Ayuda con Lectura',
+        'subcategory.other': 'Otro',
+
+        // Client Resources (Spanish)
+        'client.resources_title': 'Recursos para Clientes',
+        'client.guide_title': 'Guía de la Plataforma',
+        'client.guide_desc': 'Mire este video para aprender a hacer solicitudes.',
+        'client.video_placeholder': 'Marcador de Posición de Video',
+
+        // Encuesta (Survey)
+
+
+        // Fortalezas
+
 
         // Onboarding
         'onboarding.welcome_title': 'Bienvenido a NPVN',
@@ -1260,6 +1398,7 @@ export const DICTIONARY = {
         'onboarding.preferred_name': 'Nombre de Preferencia (Opcional)',
         'onboarding.address': 'Dirección',
         'onboarding.dob': 'Fecha de Nacimiento',
+        'onboarding.minor_warning': 'Los solicitantes menores de 18 años requieren permiso de un tutor. Se proporcionará un formulario al finalizar.',
         'onboarding.profile_photo': 'Foto de Perfil',
         'onboarding.photo_desc': 'Esto ayuda a los voluntarios a reconocerlo de forma segura.',
         'onboarding.step_2_title': 'Paso 2: Identidad y Demografía',
@@ -1322,6 +1461,20 @@ export const DICTIONARY = {
         'onboarding.pet_placeholder': 'Ej. 1 Perro amigable llamado Spot',
         'onboarding.hobbies': 'Pasatiempos e Intereses',
         'onboarding.referral': '¿Cómo se enteró de nosotros? (Referencia)',
+
+        // New Spanish Keys
+        'onboarding.volunteer_thank_you': "¡Gracias por unirse a nuestro equipo de vecinos ayudando a vecinos! Para garantizar la seguridad, tenemos algunos pasos importantes a continuación.",
+        'onboarding.client_thank_you': "¡Gracias por unirse a nuestra comunidad! Su perfil está completo y ahora puede comenzar a solicitar asistencia.",
+        'onboarding.bg_check_title': 'Verificación de Antecedentes',
+        'onboarding.bg_check_status_desc': 'Requerido para todos los voluntarios. Verá un indicador de estado en su panel.',
+        'onboarding.training': 'Capacitación',
+        'onboarding.training_desc': 'Complete los módulos breves de orientación en el Centro de Capacitación.',
+        'onboarding.make_request': 'Hacer una Solicitud',
+        'onboarding.make_request_desc': 'Use el botón "Nueva Solicitud" para pedir un viaje, recado o visita.',
+        'onboarding.get_matched': 'Obtener Asignación',
+        'onboarding.get_matched_desc': 'Un vecino verificado aceptará su solicitud.',
+        'onboarding.go_dashboard': 'Ir al Panel',
+        'onboarding.get_started': 'Comenzar',
 
         // Client Dashboard Extras
         'client.platform_overview': 'Resumen de la Plataforma: Completado',
@@ -1528,6 +1681,9 @@ export const DICTIONARY = {
         'safety.emergency_note': 'Si se trata de una emergencia inmediata, llame al 911. Este formulario es solo para reportes que no son de emergencia.',
         'safety.submit_report': 'Enviar Reporte',
 
+        'request.description_social_label': 'Ideas de Actividades y Detalles',
+        'request.description_social_placeholder': '¿Qué le gustaría hacer? Ej. tomar café, jugar juegos de mesa, salir a caminar, armar un rompecabezas, etc.',
+
         // General Resources
         'resources.title': 'Recursos Comunitarios',
         'resources.subtitle': 'Servicios locales disponibles para los residentes de North Plains.',
@@ -1553,5 +1709,63 @@ export const DICTIONARY = {
         'settings.download_data': 'Descargar Mis Datos',
         'settings.danger_zone': 'Zona de Peligro',
         'settings.deactivate_account': 'Desactivar Cuenta',
+
+        // Volunteer Extras
+        'vol.keep_assignment': 'Mantener Asignación',
+        'vol.drop': 'Soltar',
+        'vol.drop_reason': 'El voluntario optó por retirarse después de la modificación.',
+        'vol.match_confirmed': 'Nueva Coincidencia Confirmada',
+        'vol.match_desc_mock': 'Estás emparejado con Martha para el 15 de noviembre.',
+        'vol.winter_services': '❄️ Servicios de Invierno',
+        'vol.winter_desc': '¡Ahora aceptamos solicitudes para ayuda con la decoración navideña!',
+        'vol.add_to_calendar': 'Añadir al Calendario',
+        'common.update': 'Actualización',
+        'survey.post_service_report': 'Informe Post-Servicio',
+        'survey.title': 'Comentarios del Servicio',
+        'survey.request_details': 'Detalles de la Solicitud',
+        'survey.was_completed': '¿Se completó la solicitud?',
+        'survey.status_completed': 'Sí, Completada',
+        'survey.status_no_show': 'No se presentó',
+        'survey.status_unable': 'No se pudo completar',
+        'survey.rating_label': '¿Cómo calificaría su experiencia?',
+        'survey.on_time_label': '¿Llegó a tiempo el voluntario?',
+        'survey.safe_label': '¿Se sintió seguro?',
+        'survey.comments_label': 'Comentarios Adicionales',
+        'survey.comments_placeholder': 'Comparta detalles sobre su experiencia...',
+        'survey.submit_feedback': 'Enviar Comentarios',
+        'survey.submit': 'Enviar Reporte',
+        'survey.privacy_note': 'Sus comentarios nos ayudan a mejorar. Los comentarios negativos se manejarán con discreción.',
+        'survey.no_show_title': 'Reportar Ausencia',
+        'survey.no_show_desc': 'Lamentamos que el voluntario no haya llegado. Por favor, busque un reemplazo o contacte al personal si es urgente.',
+        'survey.unable_title': 'No se pudo completar',
+        'survey.unable_desc': 'Por favor indíquenos por qué no se pudo completar la solicitud.',
+        'survey.strengths_label': 'Fortalezas del Voluntario',
+        'strength.reliability': 'Fiabilidad',
+        'strength.empathy': 'Empatía',
+        'strength.punctuality': 'Puntualidad',
+        'strength.communication': 'Comunicación',
+        'strength.skills': 'Habilidades',
+        'strength.teamwork': 'Amabilidad',
+
+        'req.pickup': 'Recogida',
+        'req.appointment': 'Cita',
+        'req.return': 'Regreso',
+        'req.after_appointment': 'Después de la cita',
+        'req.destination': 'Destino',
+        'req.pickup_address': 'Dirección de Recogida',
+
+        'common.none_listed': 'Ninguno listado',
+        'calendar.google': 'Google Calendar',
+        'calendar.outlook': 'Outlook / Hotmail',
+        'calendar.apple': '(Apple / Escritorio)',
+
+        // Footer & Extra
+        'footer.rights': 'Todos los derechos reservados.',
+        'resources.guardian_form': 'Formulario de Permiso del Tutor',
+        'resources.guardian_form_desc': 'Requerido para voluntarios/clientes menores de 18 años. Descargue, firme y devuelva.',
+        'resources.download': 'Descargar',
+        'footer.privacy': 'Política de Privacidad',
+        'footer.terms': 'Términos de Servicio',
+        'admin.my_assignments': 'Mis Asignaciones',
     }
 };

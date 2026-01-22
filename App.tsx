@@ -311,6 +311,19 @@ const AppContent: React.FC = () => {
     if (user.role === UserRole.VOLUNTEER) {
       switch (currentPage) {
         case 'opportunities':
+          if (user.backgroundCheckStatus === 'PENDING' || user.backgroundCheckStatus === 'NOT_STARTED' || !user.trainingComplete) {
+            return (
+              <VolunteerDashboard
+                user={user}
+                requests={requests}
+                onAccept={handleAcceptRequest}
+                onNavigate={handleNavigate}
+                onUpdateUser={handleUpdateUser}
+                onCompleteRequest={handleCompleteRequest}
+                onWithdraw={handleWithdraw}
+              />
+            );
+          }
           return <OpportunityBoard requests={requests} onAccept={handleAcceptRequest} />;
         case 'history':
           return <VolunteerHistory user={user} requests={requests} />;
@@ -341,6 +354,28 @@ const AppContent: React.FC = () => {
         case 'create-request':
           return <CreateRequestFlow onSubmit={handleCreateRequest} onCancel={() => handleNavigate('dashboard')} />;
         case 'opportunities':
+          if (user.backgroundCheckStatus === 'PENDING' || user.backgroundCheckStatus === 'NOT_STARTED' || !user.trainingComplete) {
+            // Redirect to resources/dashboard logic if they shouldn't see opps
+            // For Dual Role, we might want to let them see their Client stuff, 
+            // so redirection to DualDashboard is appropriate.
+            return (
+              <DualDashboard
+                user={user}
+                requests={requests}
+                actions={{
+                  onCreateRequest: () => handleNavigate('create-request'),
+                  onUpdateUser: handleUpdateUser,
+                  onNavigate: handleNavigate,
+                  onCompleteSurvey: handleCompleteSurvey,
+                  onAccept: handleAcceptRequest,
+                  onCompleteRequest: handleCompleteRequest,
+                  onWithdraw: handleWithdraw,
+                  onUpdateRequest: handleUpdateRequest,
+                  onCancelRequest: handleCancelRequest
+                }}
+              />
+            );
+          }
           return <OpportunityBoard requests={requests} onAccept={handleAcceptRequest} />;
         case 'history':
           return <DualHistory user={user} requests={requests} />;

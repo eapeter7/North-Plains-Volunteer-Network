@@ -27,7 +27,7 @@ const SurveyForm: React.FC<{ onSubmit: (data: any) => void; onCancel: () => void
 
    if (step === 'INITIAL') {
       return (
-         <div className="space-y-4" title={t('survey.was_completed')}>
+         <div className="space-y-4" title={t('survey.was_completed')} aria-label={t('survey.was_completed')}>
             <h3 className="font-bold text-lg text-slate-900 dark:text-white">{t('survey.was_completed')}</h3>
             <div className="space-y-2">
                <button
@@ -351,7 +351,7 @@ export const VolunteerDashboard: React.FC<VolunteerProps> = ({ user, requests, o
    });
 
    return (
-      <div className="space-y-8" title="Volunteer Dashboard">
+      <div className="space-y-8" title="Volunteer Dashboard" aria-label="Volunteer Dashboard">
          {/* Stats & Badges */}
          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <StatWidget label={t('vol.total_hours')} value={user.totalHours || 0} icon={<Clock size={20} />} color="bg-brand-500" />
@@ -384,7 +384,7 @@ export const VolunteerDashboard: React.FC<VolunteerProps> = ({ user, requests, o
                         </div>
                         <h3 className="text-xl font-bold dark:text-white mb-2">{t('vol.app_pending')}</h3>
                         <p className="text-slate-600 dark:text-slate-300 max-w-md mx-auto mb-4">{t('vol.app_pending_desc')}</p>
-                        <Button variant="outline" onClick={() => onNavigate('resources')}>{t('vol.start_training_btn')}</Button>
+                        <Button variant="outline" onClick={() => onNavigate('volunteer-resources')}>{t('vol.start_training_btn')}</Button>
                      </div>
                   </Card>
                ) : (
@@ -448,7 +448,7 @@ export const VolunteerDashboard: React.FC<VolunteerProps> = ({ user, requests, o
                            <div className="flex-1">
                               <div className="flex justify-between items-start">
                                  <p className="font-bold text-slate-800 dark:text-white">
-                                    {notif.type === 'ACTION_REQUIRED' ? 'Action Required' : 'Update'}
+                                    {notif.type === 'ACTION_REQUIRED' ? t('alert.action_needed') : t('common.update')}
                                  </p>
                                  <button
                                     onClick={() => onUpdateUser({ notifications: user.notifications?.filter(n => n.id !== notif.id) })}
@@ -467,17 +467,17 @@ export const VolunteerDashboard: React.FC<VolunteerProps> = ({ user, requests, o
                                        variant="outline"
                                        onClick={() => onUpdateUser({ notifications: user.notifications?.filter(n => n.id !== notif.id) })}
                                     >
-                                       Keep Assignment
+                                       {t('vol.keep_assignment')}
                                     </Button>
                                     <Button
                                        size="sm"
                                        variant="danger"
                                        onClick={() => {
-                                          onWithdraw?.(notif.requestId!, "Volunteer opted to drop after modification.");
+                                          onWithdraw?.(notif.requestId!, t('vol.drop_reason'));
                                           onUpdateUser({ notifications: user.notifications?.filter(n => n.id !== notif.id) });
                                        }}
                                     >
-                                       Drop
+                                       {t('vol.drop')}
                                     </Button>
                                  </div>
                               )}
@@ -488,8 +488,8 @@ export const VolunteerDashboard: React.FC<VolunteerProps> = ({ user, requests, o
                         <div className="flex items-start gap-3 p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded transition-colors text-sm">
                            <div className="w-2 h-2 mt-1.5 bg-blue-500 rounded-full flex-shrink-0" />
                            <div>
-                              <p className="font-medium text-slate-800 dark:text-white">New Match Confirmed</p>
-                              <p className="text-xs text-slate-500 dark:text-slate-400">You are matched with Martha for Nov 15.</p>
+                              <p className="font-medium text-slate-800 dark:text-white">{t('vol.match_confirmed')}</p>
+                              <p className="text-xs text-slate-500 dark:text-slate-400">{t('vol.match_desc_mock')}</p>
                            </div>
                         </div>
                      )}
@@ -499,8 +499,8 @@ export const VolunteerDashboard: React.FC<VolunteerProps> = ({ user, requests, o
                <Card title={t('client.announcements')}>
                   <div className="space-y-3">
                      <div className="p-3 bg-brand-50 dark:bg-slate-800 border border-brand-100 dark:border-slate-700 rounded-lg text-sm">
-                        <p className="font-bold text-brand-800 dark:text-white mb-1">❄️ Winter Services</p>
-                        <p className="text-brand-700 dark:text-slate-300">We are now accepting requests for holiday decoration help!</p>
+                        <p className="font-bold text-brand-800 dark:text-white mb-1">{t('vol.winter_services')}</p>
+                        <p className="text-brand-700 dark:text-slate-300">{t('vol.winter_desc')}</p>
                      </div>
                   </div>
                </Card>
@@ -543,7 +543,7 @@ export const VolunteerDashboard: React.FC<VolunteerProps> = ({ user, requests, o
          </div >
 
          {completingId && (
-            <Modal isOpen={true} onClose={() => { }} title="Post-Service Report" hideCloseButton={true} customStyle={{ width: '90vw', maxWidth: '1200px' }}>
+            <Modal isOpen={true} onClose={() => { }} title={t('survey.post_service_report')} hideCloseButton={true} customStyle={{ width: '90vw', maxWidth: '1200px' }}>
                <SurveyForm
                   onSubmit={(data) => {
                      onCompleteRequest(completingId, data);
@@ -674,8 +674,8 @@ const AssignedRequestCard: React.FC<{ request: Request; onLogHours: () => void; 
                   <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t(`category.${request.category}`) || request.category}: {t(`subcategory.${request.subcategory}`) || request.subcategory}</h3>
                   {request.category === RequestCategory.RIDE ? (
                      <div className="text-sm text-slate-600 dark:text-slate-300 space-y-1">
-                        <p><strong>Pick-up:</strong> {request.pickupTime} • <strong>Appointment:</strong> {request.appointmentTime || 'TBD'} • <strong>Return:</strong> {request.returnTime || 'After appointment'}</p>
-                        <p><strong>Destination:</strong> {request.destinationAddress || request.location}</p>
+                        <p><strong>{t('req.pickup')}:</strong> {request.pickupTime} • <strong>{t('req.appointment')}:</strong> {request.appointmentTime || 'TBD'} • <strong>{t('req.return')}:</strong> {request.returnTime || t('req.after_appointment')}</p>
+                        <p><strong>{t('req.destination')}:</strong> {request.destinationAddress || request.location}</p>
                      </div>
                   ) : (
                      <p className="text-sm text-slate-600 dark:text-slate-300">{request.date} @ {request.timeWindow || request.pickupTime}</p>
@@ -691,8 +691,8 @@ const AssignedRequestCard: React.FC<{ request: Request; onLogHours: () => void; 
                   <p><strong>{t('common.client')}:</strong> {client?.preferredName || request.clientName}</p>
                   {request.category === RequestCategory.RIDE ? (
                      <>
-                        <p><strong>Pick-up Address:</strong> {request.pickupAddress || request.location} <a href="#" className="text-blue-600 dark:text-blue-400 underline ml-2">({t('common.map')})</a></p>
-                        <p><strong>Destination:</strong> {request.destinationAddress} <a href="#" className="text-blue-600 dark:text-blue-400 underline ml-2">({t('common.map')})</a></p>
+                        <p><strong>{t('req.pickup_address')}:</strong> {request.pickupAddress || request.location} <a href="#" className="text-blue-600 dark:text-blue-400 underline ml-2">({t('common.map')})</a></p>
+                        <p><strong>{t('req.destination')}:</strong> {request.destinationAddress} <a href="#" className="text-blue-600 dark:text-blue-400 underline ml-2">({t('common.map')})</a></p>
                      </>
                   ) : (
                      <p><strong>{t('common.location')}:</strong> {request.location} <a href="#" className="text-blue-600 dark:text-blue-400 underline ml-2">({t('common.map')})</a></p>
@@ -741,7 +741,7 @@ const AssignedRequestCard: React.FC<{ request: Request; onLogHours: () => void; 
                         setShowCalendarModal(false);
                      }}
                   >
-                     <Globe size={18} className="text-blue-500" /> Google Calendar
+                     <Globe size={18} className="text-blue-500" /> {t('calendar.google')}
                   </Button >
 
                   <Button
@@ -754,7 +754,7 @@ const AssignedRequestCard: React.FC<{ request: Request; onLogHours: () => void; 
                         setShowCalendarModal(false);
                      }}
                   >
-                     <Mail size={18} className="text-blue-600" /> Outlook / Hotmail
+                     <Mail size={18} className="text-blue-600" /> {t('calendar.outlook')}
                   </Button>
 
                   <Button
@@ -765,7 +765,7 @@ const AssignedRequestCard: React.FC<{ request: Request; onLogHours: () => void; 
                         setShowCalendarModal(false);
                      }}
                   >
-                     <FileText size={18} className="text-slate-500" /> {t('vol.download_ics')} (Apple / Desktop)
+                     <FileText size={18} className="text-slate-500" /> {t('vol.download_ics')} {t('calendar.apple')}
                   </Button>
 
                   <div className="pt-2">
@@ -792,8 +792,15 @@ export const VolunteerOnboarding: React.FC<{ user: User; onUpdate: (u: Partial<U
          spread: 70,
          origin: { y: 0.6 }
       });
+
+      let adminNotes = user.adminNotes || '';
+      if (formData.dob && new Date().getFullYear() - new Date(formData.dob).getFullYear() < 18) {
+         adminNotes += '\n[SYSTEM]: User identified as minor (Under 18). Guardian permission required.';
+      }
+
       onUpdate({
          ...formData,
+         adminNotes,
          onboardingStep: OnboardingStep.COMPLETE,
          backgroundCheckStatus: 'PENDING',
          intakeDate: new Date().toISOString().split('T')[0],
@@ -855,6 +862,11 @@ export const VolunteerOnboarding: React.FC<{ user: User; onUpdate: (u: Partial<U
                         <option value="Prefer not to say">{t('onboarding.prefer_not_say')}</option>
                      </Input>
                   </div>
+                  {formData.dob && new Date().getFullYear() - new Date(formData.dob).getFullYear() < 18 && (
+                     <p className="text-xs text-amber-600 font-bold mb-4 animate-in fade-in bg-amber-50 p-2 rounded border border-amber-200">
+                        {t('onboarding.minor_warning')}
+                     </p>
+                  )}
 
                   <Input label={t('onboarding.address')} value={formData.address} disabled className="bg-slate-50 dark:bg-slate-800" />
 
@@ -917,9 +929,10 @@ export const VolunteerOnboarding: React.FC<{ user: User; onUpdate: (u: Partial<U
                   <div className="border-t pt-4 mt-4 dark:border-slate-700">
                      <h3 className="font-bold mb-2">{t('onboarding.emergency_contact')}</h3>
                      <div className="grid grid-cols-2 gap-4">
-                        <Input label={t('common.name')} value={formData.emergencyContact?.name || ''} onChange={e => setFormData({ ...formData, emergencyContact: { ...formData.emergencyContact!, name: e.target.value } })} />
-                        <Input label={t('common.phone')} value={formData.emergencyContact?.phone || ''} onChange={e => setFormData({ ...formData, emergencyContact: { ...formData.emergencyContact!, phone: e.target.value } })} />
+                        <Input label={t('common.name')} value={formData.emergencyContact?.name || ''} onChange={e => setFormData({ ...formData, emergencyContact: { ...(formData.emergencyContact || { phone: '', relation: '' }), name: e.target.value } })} />
+                        <Input label={t('common.phone')} value={formData.emergencyContact?.phone || ''} onChange={e => setFormData({ ...formData, emergencyContact: { ...(formData.emergencyContact || { name: '', relation: '' }), phone: e.target.value } })} />
                      </div>
+                     <Input label={t('onboarding.relationship')} value={formData.emergencyContact?.relation || ''} onChange={e => setFormData({ ...formData, emergencyContact: { ...(formData.emergencyContact || { name: '', phone: '' }), relation: e.target.value } })} />
                   </div>
 
                   <div className="flex justify-between pt-4">
@@ -1329,6 +1342,17 @@ export const VolunteerResources: React.FC<{ user: User; onUpdate: (u: Partial<Us
 
             <Card title={t('vol.quick_downloads')}>
                <div className="space-y-3">
+                  {/* Conditional Guardian Form (Check age 18) */}
+                  {user.dob && new Date().getFullYear() - new Date(user.dob).getFullYear() < 18 && (
+                     <button className="flex items-center gap-3 w-full p-3 rounded bg-amber-50 hover:bg-amber-100 transition-colors border border-amber-200">
+                        <div className="bg-amber-100 text-amber-600 p-2 rounded"><ShieldAlert size={20} /></div>
+                        <div className="text-left flex-1">
+                           <p className="font-bold text-sm text-amber-900">{t('resources.guardian_form')}</p>
+                           <p className="text-xs text-amber-700">{t('resources.guardian_form_desc')}</p>
+                        </div>
+                        <div className="text-amber-800 text-xs font-bold uppercase">{t('resources.download')}</div>
+                     </button>
+                  )}
                   <button className="flex items-center gap-3 w-full p-3 rounded hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors border border-transparent hover:border-slate-200">
                      <div className="bg-red-50 text-red-600 p-2 rounded"><FileText size={20} /></div>
                      <div className="text-left">
@@ -1827,13 +1851,7 @@ export const VolunteerSettings: React.FC = () => {
 
          <Card title={t('settings.privacy_data')}>
             <div className="space-y-4">
-               <p className="text-sm text-slate-600 dark:text-slate-300">
-                  {t('settings.download_data_desc')}
-               </p>
-               <Button variant="outline">{t('settings.download_data')}</Button>
-
-               <div className="border-t pt-4 mt-4 dark:border-slate-700">
-                  <p className="text-xs text-red-600 mb-2 font-bold">{t('settings.danger_zone')}</p>
+               <div>
                   <Button variant="danger" size="sm">{t('settings.deactivate_account')}</Button>
                </div>
             </div>
